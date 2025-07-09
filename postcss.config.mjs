@@ -1,8 +1,10 @@
-// postcss.config.js - THE CORRECT CONFIGURATION
+// postcss.config.mjs
 
-module.exports = {
+const config = {
   plugins: {
     tailwindcss: {},
     autoprefixer: {},
   },
 };
+
+export default config;
