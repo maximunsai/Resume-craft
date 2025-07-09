@@ -1,10 +1,12 @@
-// src/middleware.ts
+// src/middleware.ts - FINAL FIX
 
-import { createServerClient } from '@supabase/ssr'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  // This `response` object will be passed through and modified by the Supabase client.
+  // This comment tells the linter to ignore the "prefer-const" error for the next line.
+  // We need `let` here because the `response` object is reassigned inside the `setAll` callback.
+  // eslint-disable-next-line prefer-const
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -16,30 +18,38 @@ export async function middleware(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        // The `getAll` method reads cookies from the incoming request.
         getAll() {
           return request.cookies.getAll()
         },
-        // The `setAll` method writes cookies to the outgoing response.
-        // This implementation is now cleaner and correctly uses the 'options' parameter.
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, options)
+          cookiesToSet.forEach(({ name, value, options }) => 
+            request.cookies.set(name, value)
+          );
+          response = NextResponse.next({
+            request,
           });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          );
         },
       },
     }
   )
 
-  // IMPORTANT: The `getUser` method must be called to refresh the session.
   await supabase.auth.getUser()
 
   return response
 }
 
-// Ensure middleware runs on all paths except for static assets and API routes.
 export const config = {
   matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - api (API routes)
+     */
     '/((?!_next/static|_next/image|favicon.ico|api/).*)',
   ],
 }

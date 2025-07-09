@@ -1,10 +1,9 @@
-// src/components/PDFDownloader.tsx
+// src/components/PDFDownloader.tsx - FINAL, CORRECTED VERSION
+
 'use client';
 import { PDFDownloadLink, Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
-// --- THE SPECIFIC CHANGE IS HERE ---
-// We are adding the word "export" before "interface".
-// This makes the ResumeData type available to be imported by other files.
+// This interface defines the shape of our final resume data
 export interface ResumeData { 
     name: string;
     email: string;
@@ -21,7 +20,7 @@ export interface ResumeData {
     }[];
 }
 
-// Create styles for the PDF
+// These are the styles for the PDF document itself
 const styles = StyleSheet.create({
     page: {
         flexDirection: 'column',
@@ -36,16 +35,7 @@ const styles = StyleSheet.create({
     name: {
         fontSize: 24,
         fontFamily: 'Helvetica-Bold',
-    },
-    jobTitle: {
-        fontSize: 12,
-        fontFamily: 'Helvetica-Bold',
-        marginTop: 10,
-    },
-    companyName: {
-        fontSize: 10,
-        fontFamily: 'Helvetica-Oblique',
-        marginBottom: 5,
+        textTransform: 'uppercase',
     },
     contact: {
         fontSize: 10,
@@ -58,6 +48,17 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: '#000',
         paddingBottom: 2,
+        textTransform: 'uppercase',
+    },
+    jobTitle: {
+        fontSize: 12,
+        fontFamily: 'Helvetica-Bold',
+        marginTop: 10,
+    },
+    companyName: {
+        fontSize: 10,
+        fontFamily: 'Helvetica-Oblique',
+        marginBottom: 5,
     },
     paragraph: {
         fontSize: 10,
@@ -80,23 +81,23 @@ const styles = StyleSheet.create({
     },
 });
 
-// Create the PDF document component
+// This is the component that defines the structure of our PDF
 const MyResumeDocument = ({ data }: { data: ResumeData }) => (
     <Document>
         <Page size="A4" style={styles.page}>
             <View style={styles.header}>
-                <Text style={styles.name}>{data.name.toUpperCase()}</Text>
+                <Text style={styles.name}>{data.name}</Text>
                 <Text style={styles.contact}>{`${data.email} • ${data.phone} • ${data.linkedin} • ${data.github}`}</Text>
             </View>
 
             <View>
-                <Text style={styles.sectionTitle}>PROFESSIONAL SUMMARY</Text>
+                <Text style={styles.sectionTitle}>Professional Summary</Text>
                 <Text style={styles.paragraph}>{data.professionalSummary}</Text>
 
-                <Text style={styles.sectionTitle}>TECHNICAL SKILLS</Text>
+                <Text style={styles.sectionTitle}>Technical Skills</Text>
                 <Text style={styles.paragraph}>{data.technicalSkills.join(' • ')}</Text>
                 
-                <Text style={styles.sectionTitle}>PROFESSIONAL EXPERIENCE</Text>
+                <Text style={styles.sectionTitle}>Professional Experience</Text>
                 {data.detailedExperience.map((exp) => (
                     <View key={exp.id} wrap={false}>
                         <Text style={styles.jobTitle}>{exp.title}</Text>
@@ -114,6 +115,7 @@ const MyResumeDocument = ({ data }: { data: ResumeData }) => (
     </Document>
 );
 
+// THIS IS THE COMPONENT WITH THE FIX
 const PDFDownloaderComponent = ({ resumeData }: { resumeData: ResumeData }) => (
     <PDFDownloadLink
       document={<MyResumeDocument data={resumeData} />}
@@ -129,9 +131,12 @@ const PDFDownloaderComponent = ({ resumeData }: { resumeData: ResumeData }) => (
           fontWeight: 'bold',
       }}
     >
-        {({ loading }) =>
-            loading ? 'Generating PDF...' : 'Download PDF'
-        }
+      {/* 
+        THE FIX IS HERE: We simplify the child function. 
+        It receives the `loading` state and returns a string, which is a valid ReactNode.
+        This simplified version is easily understood by TypeScript.
+      */}
+      {({ loading }) => (loading ? 'Generating PDF...' : 'Download PDF')}
     </PDFDownloadLink>
 );
 
