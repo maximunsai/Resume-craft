@@ -1,10 +1,9 @@
-// src/lib/supabase/server.ts - FINAL, CORRECTED VERSION
+// src/lib/supabase/server.ts
 
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
 // This is the read-only client for use in Server Components.
-// It uses the new, non-deprecated cookie handling API.
 export function createClient() {
   const cookieStore = cookies()
 
@@ -17,10 +16,11 @@ export function createClient() {
         getAll() {
           return cookieStore.getAll()
         },
-        // In a server component, we don't need to set cookies,
-        // so we provide an empty function to satisfy the type.
-        // The middleware will handle all cookie setting.
-        setAll(cookiesToSet) {},
+        // In a server component, we don't need to set cookies.
+        // The parameter is prefixed with an underscore to indicate it's intentionally unused.
+        setAll(_cookiesToSet) {
+          // No-op
+        },
       },
     }
   )
