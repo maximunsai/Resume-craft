@@ -20,37 +20,77 @@ export default function LoginPage() {
             if (isRegistering) {
                 const { error } = await supabase.auth.signUp({ email, password });
                 if (error) throw error;
-                alert('Registration successful! Please check your email to confirm.');
+                // Use a non-problematic string here
+                alert('Registration successful! Please check your email to confirm your account.');
             } else {
                 const { error } = await supabase.auth.signInWithPassword({ email, password });
                 if (error) throw error;
                 router.push('/builder');
+                router.refresh(); // Good practice to refresh router state after login
             }
-        }catch (error) { // Change this line
-        if (error instanceof Error) { // Add this check
-            setError(error.message);
-        } else {
-            setError('An unexpected error occurred.');
+        } catch (error) {
+            if (error instanceof Error) {
+                setError(error.message);
+            } else {
+                setError('An unexpected error occurred.');
+            }
         }
-    }
     };
     
-    // Simple inline styles for demonstration. Use Tailwind classes in a real app.
-    const inputStyle = { border: '1px solid #ccc', padding: '8px', borderRadius: '4px', marginBottom: '10px', width: '100%' };
-    const buttonStyle = { background: '#205295', color: 'white', padding: '10px', border: 'none', borderRadius: '4px', cursor: 'pointer', width: '100%' };
+    // Using Tailwind classes for styling is better practice, but inline styles for demo
+    const inputStyle = "w-full p-2 border border-gray-300 rounded mb-4 text-[#0A2647] bg-white focus:outline-none focus:ring-2 focus:ring-[#2C74B3]";
+    const buttonStyle = "w-full p-3 bg-[#205295] text-white font-bold rounded-lg hover:bg-[#143F6B] transition-colors duration-300";
 
     return (
-        <div style={{ maxWidth: '400px', margin: '100px auto', padding: '20px', background: '#F8F7F4', borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-            <h1 style={{ color: '#0A2647', textAlign: 'center' }}>{isRegistering ? 'Create Account' : 'Welcome Back'}</h1>
-            <form onSubmit={handleAuth}>
-                <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} style={inputStyle} required />
-                <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} style={inputStyle} required />
-                <button type="submit" style={buttonStyle}>{isRegistering ? 'Register' : 'Login'}</button>
-                {error && <p style={{ color: 'red', marginTop: '10px' }}>{error}</p>}
-            </form>
-            <p style={{ textAlign: 'center', marginTop: '20px', cursor: 'pointer', color: '#2C74B3' }} onClick={() => setIsRegistering(!isRegistering)}>
-                {isRegistering ? 'Already have an account? Login' : "Don't have an account? Register"}
-            </p>
+        <div className="min-h-screen flex items-center justify-center bg-[#F8F7F4]">
+            <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-lg">
+                <div>
+                    <h1 className="text-3xl font-bold text-center text-[#0A2647]">
+                        {isRegistering ? 'Create Your Account' : 'Welcome Back'}
+                    </h1>
+                </div>
+                <form className="mt-8 space-y-6" onSubmit={handleAuth}>
+                    <div className="rounded-md shadow-sm -space-y-px">
+                        <div>
+                            <input 
+                                type="email" 
+                                placeholder="Email address" 
+                                value={email} 
+                                onChange={(e) => setEmail(e.target.value)} 
+                                className={inputStyle} 
+                                required 
+                            />
+                        </div>
+                        <div>
+                            <input 
+                                type="password" 
+                                placeholder="Password" 
+                                value={password} 
+                                onChange={(e) => setPassword(e.target.value)} 
+                                className={inputStyle} 
+                                required 
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <button type="submit" className={buttonStyle}>
+                            {isRegistering ? 'Register' : 'Login'}
+                        </button>
+                    </div>
+                    {error && <p className="text-center text-red-500 text-sm mt-2">{error}</p>}
+                </form>
+                <p 
+                    className="mt-4 text-center text-sm text-[#2C74B3] hover:text-[#205295] cursor-pointer" 
+                    onClick={() => {
+                        setIsRegistering(!isRegistering);
+                        setError(null); // Clear error on switch
+                    }}
+                >
+                    {/* THIS IS THE CORRECTED LINE */}
+                    {isRegistering ? 'Already have an account? Login' : "Don't have an account? Register"}
+                </p>
+            </div>
         </div>
     );
 }
