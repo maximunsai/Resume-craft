@@ -55,8 +55,9 @@ export async function POST(request: Request) {
 
         return NextResponse.json(JSON.parse(content));
 
-    } catch (error: any) {
+    }  catch (error) { // Change this line
         console.error("Error in API route:", error);
-        return NextResponse.json({ error: error.message || 'An internal server error occurred' }, { status: 500 });
+        const errorMessage = error instanceof Error ? error.message : 'An internal server error occurred';
+        return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 }

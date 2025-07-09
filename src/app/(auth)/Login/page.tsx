@@ -26,9 +26,13 @@ export default function LoginPage() {
                 if (error) throw error;
                 router.push('/builder');
             }
-        } catch (error: any) {
+        }catch (error) { // Change this line
+        if (error instanceof Error) { // Add this check
             setError(error.message);
+        } else {
+            setError('An unexpected error occurred.');
         }
+    }
     };
     
     // Simple inline styles for demonstration. Use Tailwind classes in a real app.

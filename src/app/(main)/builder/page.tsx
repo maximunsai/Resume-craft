@@ -24,7 +24,7 @@ const ExperienceForm = () => {
     return (
         <div>
             <h2 className="text-2xl font-bold mb-4 text-[#0A2647]">Professional Experience</h2>
-            {experience.map((exp, index) => (
+            {experience.map((exp) => (
                 <div key={exp.id} className="p-4 border rounded mb-4 bg-white">
                     <input className="w-full p-2 border rounded mb-2" placeholder="Job Title" value={exp.title} onChange={e => updateExperience(exp.id, 'title', e.target.value)} />
                     <input className="w-full p-2 border rounded mb-2" placeholder="Company" value={exp.company} onChange={e => updateExperience(exp.id, 'company', e.target.value)} />

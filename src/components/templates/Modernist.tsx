@@ -1,6 +1,7 @@
-// src/components/templates/Modernist.tsx
-// This is your actual resume layout component. Style it with props.
-export const Modernist = ({ data }: { data: any }) => (
+// src/components/templates/Modernist.tsx - FIXED
+import { ResumeData } from '@/components/PDFDownloader'; // Import the type
+
+export const Modernist = ({ data }: { data: ResumeData }) => ( // Use the type
     <div>
         <h1 style={{ fontSize: '24px', fontWeight: 'bold' }}>{data.name}</h1>
         <p>{data.email} | {data.phone} | {data.linkedin}</p>

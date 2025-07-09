@@ -1,7 +1,7 @@
-// src/store/resumeStore.ts
+// src/store/resumeStore.ts - FULL REPLACEMENT (FIXED)
 import { create } from 'zustand';
 
-// Define types for our store
+// --- DEFINE TYPES ---
 type PersonalDetails = {
     name: string;
     email: string;
@@ -15,8 +15,21 @@ type Experience = {
     company: string;
     title: string;
     startDate: string;
-    endDate:string;
+    endDate: string;
     description: string;
+};
+
+// Define a specific type for the AI-generated content
+type AiGeneratedContent = {
+    professionalSummary: string;
+    technicalSkills: string[];
+    detailedExperience: { 
+        id: number; 
+        points: string[];
+        // Also add company/title from the original experience for context
+        company: string;
+        title: string;
+    }[];
 };
 
 type ResumeState = {
@@ -24,18 +37,14 @@ type ResumeState = {
     experience: Experience[];
     skills: string;
     finalThoughts: string;
-    aiGenerated: {
-        professionalSummary: string;
-        technicalSkills: string[];
-        detailedExperience: { id: number; points: string[] }[];
-    } | null;
+    aiGenerated: AiGeneratedContent | null;
     setPersonal: (details: Partial<PersonalDetails>) => void;
     addExperience: () => void;
     updateExperience: (id: number, field: keyof Experience, value: string) => void;
     removeExperience: (id: number) => void;
     setSkills: (skills: string) => void;
     setFinalThoughts: (thoughts: string) => void;
-    setAiGenerated: (data: any) => void;
+    setAiGenerated: (data: AiGeneratedContent) => void; // Use the specific type here
     resetStore: () => void;
 };
 
@@ -61,6 +70,6 @@ export const useResumeStore = create<ResumeState>((set) => ({
     })),
     setSkills: (skills) => set({ skills }),
     setFinalThoughts: (thoughts) => set({ finalThoughts: thoughts }),
-    setAiGenerated: (data) => set({ aiGenerated: data }),
+    setAiGenerated: (data) => set({ aiGenerated: data }), // This now expects the correct type
     resetStore: () => set(initialState)
 }));
