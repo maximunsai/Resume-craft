@@ -1,13 +1,19 @@
-// src/app/api/generate-resume/route.ts - USE THIS VERSION
+// src/app/api/generate-resume/route.ts - UPDATED FOR GOOGLE GEMINI
 
 import { NextResponse } from 'next/server';
-import OpenAI from 'openai';
+// Import the Google Generative AI library
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
-// We define a simple type to fix the TypeScript error.
+// We must define this for safety settings
+const safetySettings = [
+    { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+    { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+    { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+    { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+];
+
 type ExperienceItem = {
     id: number;
     title: string;
@@ -20,16 +26,16 @@ export async function POST(request: Request) {
         const body = await request.json();
         const { personal, experience, skills, finalThoughts } = body;
 
+        // The prompt remains almost identical. Good prompt engineering is universal.
         const prompt = `
         SYSTEM PROMPT:
-        You are "ResumeCraft AI," an expert resume writer with 30+ years of experience in top-tier executive recruiting. Your task is to transform raw user data into a world-class, ATS-optimized resume. Use powerful action verbs, focus on quantifiable achievements, and frame responsibilities using the STAR method. The output MUST be a clean, parsable JSON object.
+        You are "ResumeCraft AI," an expert resume writer with 30+ years of experience in top-tier executive recruiting. Your task is to transform raw user data into a world-class, ATS-optimized resume. Use powerful action verbs, focus on quantifiable achievements, and frame responsibilities using the STAR method. The output MUST be a clean, parsable JSON object, starting with { and ending with }. Do not include any other text, markdown, or explanations before or after the JSON.
 
         USER DATA:
         - Personal: ${JSON.stringify(personal)}
         - Experience: ${JSON.stringify(
-            // THE FIX IS HERE: We apply the 'ExperienceItem' type to the parameter 'e'
             experience.map((e: ExperienceItem) => ({ 
-                id: e.id, // Pass the id for mapping later
+                id: e.id,
                 title: e.title, 
                 company: e.company, 
                 description: e.description 
@@ -55,20 +61,18 @@ export async function POST(request: Request) {
         }
         `;
 
-        const response = await openai.chat.completions.create({
-            model: "gpt-4o",
-            response_format: { type: "json_object" },
-            messages: [{ role: "system", content: prompt }],
-            temperature: 0.7,
-        });
+        // This is the new part for calling Gemini
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+        const result = await model.generateContent(prompt, { safetySettings });
+        const response = result.response;
+        const text = response.text();
         
-        const content = response.choices[0].message.content;
-        if (!content) {
-            throw new Error("AI failed to generate a response.");
-        }
+        // Clean the response to ensure it's valid JSON
+        const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim();
 
-        // Combine the AI data with the original user data for a complete object
-        const aiData = JSON.parse(content);
+        const aiData = JSON.parse(cleanedText);
+
+        // Combine the AI data with the original user data
         aiData.detailedExperience = aiData.detailedExperience.map((aiExp: {id: number, points: string[]}) => {
             const originalExp = experience.find((exp: {id: number}) => exp.id === aiExp.id);
             return {
@@ -81,7 +85,7 @@ export async function POST(request: Request) {
         return NextResponse.json(aiData);
 
     } catch (error) {
-        console.error("Error in API route:", error);
+        console.error("Error in Gemini API route:", error);
         const errorMessage = error instanceof Error ? error.message : 'An internal server error occurred';
         return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
