@@ -1,12 +1,12 @@
-// src/app/api/generate-resume/route.ts - UPDATED FOR GOOGLE GEMINI
+// src/app/api/generate-resume/route.ts - FINAL CORRECTED VERSION FOR GEMINI
 
 import { NextResponse } from 'next/server';
-// Import the Google Generative AI library
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 
+// Initialize the client with your API key
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
-// We must define this for safety settings
+// Define the safety settings for the model
 const safetySettings = [
     { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
     { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -26,7 +26,6 @@ export async function POST(request: Request) {
         const body = await request.json();
         const { personal, experience, skills, finalThoughts } = body;
 
-        // The prompt remains almost identical. Good prompt engineering is universal.
         const prompt = `
         SYSTEM PROMPT:
         You are "ResumeCraft AI," an expert resume writer with 30+ years of experience in top-tier executive recruiting. Your task is to transform raw user data into a world-class, ATS-optimized resume. Use powerful action verbs, focus on quantifiable achievements, and frame responsibilities using the STAR method. The output MUST be a clean, parsable JSON object, starting with { and ending with }. Do not include any other text, markdown, or explanations before or after the JSON.
@@ -61,9 +60,18 @@ export async function POST(request: Request) {
         }
         `;
 
-        // This is the new part for calling Gemini
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
-        const result = await model.generateContent(prompt, { safetySettings });
+        // =====================================================================
+        // THE FIX IS HERE: `safetySettings` is passed to `getGenerativeModel`.
+        // The `generateContent` call now only takes the prompt.
+        // =====================================================================
+        const model = genAI.getGenerativeModel({ 
+            model: "gemini-1.5-flash-latest",
+            safetySettings: safetySettings // Moved to here
+        });
+
+        const result = await model.generateContent(prompt); // No second argument needed now
+        // =====================================================================
+
         const response = result.response;
         const text = response.text();
         
