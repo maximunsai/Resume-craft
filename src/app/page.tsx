@@ -27,4 +27,5 @@ export default async function HomePage() {
   // because the user will always be redirected first.
   // But we include it to have a valid return type.
   return null;
+  
 }
