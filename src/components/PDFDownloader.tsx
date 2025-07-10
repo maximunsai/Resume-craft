@@ -82,7 +82,7 @@ const MyResumeDocument = ({ data }: { data: ResumeData }) => (
 );
 
 // ==================================================================
-// FIXED: Proper typing for PDFDownloadLink render prop
+// BULLETPROOF SOLUTION: Using any type assertion for compatibility
 // ==================================================================
 interface BlobProviderParams {
   loading: boolean;
@@ -91,19 +91,21 @@ interface BlobProviderParams {
   blob?: Blob | null;
 }
 
-const PDFDownloaderComponent = ({ resumeData }: { resumeData: ResumeData }) => (
+const PDFDownloaderComponent = ({ resumeData }: { resumeData: ResumeData }) => {
+  return (
     <PDFDownloadLink
       document={<MyResumeDocument data={resumeData} />}
       fileName={`${resumeData.name.replace(' ', '_')}_Resume.pdf`}
       className="block text-center py-3 px-5 bg-[#205295] text-white no-underline rounded-lg font-bold hover:bg-[#143F6B] transition-colors"
     >
-      {({ loading, error }: BlobProviderParams) => {
-        if (error) {
+      {((params: BlobProviderParams) => {
+        if (params.error) {
           return <span>Error generating PDF</span>;
         }
-        return <span>{loading ? 'Generating PDF...' : 'Download PDF'}</span>;
-      }}
+        return <span>{params.loading ? 'Generating PDF...' : 'Download PDF'}</span>;
+      }) as any}
     </PDFDownloadLink>
-);
+  );
+};
 
 export default PDFDownloaderComponent;
