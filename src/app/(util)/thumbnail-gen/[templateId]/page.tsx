@@ -4,8 +4,19 @@ import { Modernist } from "@/components/templates/Modernist";
 import { Classic } from "@/components/templates/Classic";
 import { Minimalist } from "@/components/templates/Minimalist";
 import { Executive } from "@/components/templates/Executive";
-import { Creative } from "@/components/templates/Creative"; // Import new
-import { Technical } from "@/components/templates/Technical"; // Import new
+import { Creative } from "@/components/templates/Creative"; 
+import { Technical } from "@/components/templates/Technical"; 
+import { Academic } from "@/components/templates/Academic"; 
+import { Corporate } from "@/components/templates/Corporate"; 
+import { Bold } from "@/components/templates/Bold"; 
+import { Elegant } from "@/components/templates/Elegant"; 
+import { Simple } from "@/components/templates/Simple"; 
+import { Cascade } from "@/components/templates/Cascade";  
+import { Apex } from "@/components/templates/Apex";  
+import { Metro } from "@/components/templates/Metro";
+import { Pinnacle } from "@/components/templates/Pinnacle";  
+import { Onyx } from "@/components/templates/Onyx";  
+import { Cosmopolitan } from "@/components/templates/Cosmopolitan";
 import { placeholderResumeData } from "@/lib/placeholder-data";
 
 // All keys are lowercase to match the URL parameters.
@@ -15,7 +26,18 @@ const templateMap = {
     minimalist: Minimalist,
     executive: Executive,
     creative: Creative,
-    technical: Technical, // <-- Key is 'technical' (lowercase)
+    technical: Technical, 
+    academic: Academic, 
+    corporate: Corporate, 
+    simple: Simple, 
+    elegant: Elegant, 
+    bold: Bold,
+    cascade: Cascade,
+    apex: Apex,
+    metro: Metro,
+    pinnacle: Pinnacle,
+    onyx: Onyx,
+    cosmopolitan: Cosmopolitan, 
 };
 
 export default function ThumbnailGeneratorPage({ params }: { params: { templateId: string } }) {

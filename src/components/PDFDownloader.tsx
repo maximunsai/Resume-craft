@@ -29,13 +29,27 @@ import { ClassicPDF } from './pdf-templates/ClassicPDF';
 import { MinimalistPDF } from './pdf-templates/MinimalistPDF';
 import { ExecutivePDF } from './pdf-templates/ExecutivePDF';
 
-
+// import { CreativePDF } from "@/components/templates/CreativePDF"; 
+// import { TechnicalPDF } from "@/components/templates/TechnicalPDF"; 
+// import { AcademicPDF } from "@/components/templates/AcademicPDF"; 
+// import { CorporatePDF } from "@/components/templates/CorporatePDF"; 
+// import { BoldPDF } from "@/components/templates/BoldPDF"; 
+// import { ElegantPDF } from "@/components/templates/ElegantPDF"; 
+// import { SimplePDF } from "@/components/templates/SimplePDF"; 
+// import { placeholderResumeData } from "@/lib/placeholder-data";
 
 const pdfTemplateMap = {
     modernist: ModernistPDF,
     classic: ClassicPDF,
     minimalist: MinimalistPDF,
     executive: ExecutivePDF, 
+    // creative: CreativePDF,
+    // technical: TechnicalPDF, 
+    // academic: AcademicPDF, 
+    // corporate: CorporatePDF, 
+    // simple: SimplePDF, 
+    // elegant: ElegantPDF, 
+    // bold: BoldPDF, 
 
 };
 // =======================================================

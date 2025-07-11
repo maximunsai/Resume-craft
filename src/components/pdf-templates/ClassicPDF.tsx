@@ -1,10 +1,11 @@
 // src/components/pdf-templates/ClassicPDF.tsx - CORRECTED VERSION
 
-import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Font, Link } from '@react-pdf/renderer';
 import type { ResumeData } from '../PDFDownloader';
 
 // =================================================================
-// THE FIX FOR PROBLEM 2 IS HERE: We must register all fonts used.
+// THE FIX IS HERE: We must register ALL fonts used in the styles.
+// We need both 'Times New Roman' for the main text and 'Helvetica' for other parts.
 // =================================================================
 Font.register({
   family: 'Times New Roman',
@@ -14,11 +15,16 @@ Font.register({
     { src: 'https://cdn.jsdelivr.net/npm/times-new-roman@0.0.5/fonts/times-new-roman-italic.ttf', fontStyle: 'italic' },
   ],
 });
-// Also register Helvetica since it's used for contact info and bullet points
-Font.register({ family: 'Helvetica', src: 'https://cdn.jsdelivr.net/npm/helveticaneue@2.0.0/dist/Helvetica.ttf' });
+
+Font.register({ 
+  family: 'Helvetica', 
+  fonts: [
+    { src: 'https://cdn.jsdelivr.net/npm/helveticaneue@2.0.0/dist/Helvetica.ttf' },
+  ]
+});
 // =================================================================
 
-// --- The styles object is correct. ---
+// The styles are correct, as they reference the fonts we just registered.
 const styles = StyleSheet.create({
     page: { padding: 40, fontFamily: 'Times New Roman', fontSize: 11, lineHeight: 1.3 },
     header: { textAlign: 'center', marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#333', paddingBottom: 10 },
@@ -33,22 +39,29 @@ const styles = StyleSheet.create({
     bulletText: { flex: 1 },
 });
 
-// --- The main component is correct. ---
+// The main component is correct. I've added <Link> for better functionality.
 export const ClassicPDF = ({ data }: { data: ResumeData }) => (
-  <Document author="ResumeCraft AI" title={`${data.name} Resume`}>
+  <Document author="ResumeCraft AI" title={`${data.name} Resume - Classic`}>
     <Page size="A4" style={styles.page}>
         <View style={styles.header}>
             <Text style={styles.name}>{data.name}</Text>
-            <Text style={styles.contact}>{`${data.email} | ${data.phone} | ${data.linkedin} | ${data.github}`}</Text>
+            <View style={styles.contact}>
+                <Text>
+                    <Link src={`mailto:${data.email}`}>{data.email}</Link> | {data.phone} | <Link src={data.linkedin}>{data.linkedin}</Link> | <Link src={data.github}>{data.github}</Link>
+                </Text>
+            </View>
         </View>
+
         <View style={styles.section}>
             <Text style={styles.sectionTitle}>Summary</Text>
             <Text>{data.professionalSummary}</Text>
         </View>
+
         <View style={styles.section}>
             <Text style={styles.sectionTitle}>Core Competencies</Text>
             <Text style={{ fontFamily: 'Helvetica' }}>{data.technicalSkills.join(' / ')}</Text>
         </View>
+        
         <View style={styles.section}>
             <Text style={styles.sectionTitle}>Professional Experience</Text>
             {data.detailedExperience.map(exp => (

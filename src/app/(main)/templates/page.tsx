@@ -47,7 +47,7 @@ export default function TemplateSelectionPage() {
         // THE FIX FOR PROBLEM 1 IS HERE
         // ================================================================
         // Define an array of templates that are actually ready for generation.
-        const availableTemplates = ['modernist', 'classic', 'minimalist', 'executive', 'creative', 'technical'];
+        const availableTemplates = ['modernist', 'classic', 'minimalist', 'executive', 'creative', 'technical', 'corporate', 'academic', 'bold', 'elegant', 'simple', 'apex', 'cascade', 'metro', 'pinnacle', 'onyx', 'cosmopolitan'];
 
         // Check if the selected template is in our list of available ones.
         if (!availableTemplates.includes(templateId)) {

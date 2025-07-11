@@ -14,6 +14,17 @@ import { Minimalist } from '@/components/templates/Minimalist';
 import { Executive } from '@/components/templates/Executive';
 import { Creative } from '@/components/templates/Creative';
 import { Technical } from '@/components/templates/Technical';
+import { Academic } from "@/components/templates/Academic"; 
+import { Corporate } from "@/components/templates/Corporate";
+import { Bold } from "@/components/templates/Bold"; 
+import { Elegant } from "@/components/templates/Elegant"; 
+import { Simple } from "@/components/templates/Simple";  
+import { Cascade } from "@/components/templates/Cascade";  
+import { Apex } from "@/components/templates/Apex";  
+import { Metro } from "@/components/templates/Metro";  
+import { Pinnacle } from "@/components/templates/Pinnacle";  
+import { Onyx } from "@/components/templates/Onyx";  
+import { Cosmopolitan } from "@/components/templates/Cosmopolitan";  
 
 // Dynamically import the PDFDownloader to avoid SSR issues
 const PDFDownloader = dynamic(
@@ -29,6 +40,17 @@ const templateMap = {
     executive: Executive,
     creative: Creative,
     technical: Technical,
+    academic: Academic, 
+    corporate: Corporate,
+    simple: Simple, 
+    elegant: Elegant, 
+    bold: Bold,
+    cascade: Cascade,
+    apex: Apex,
+    metro: Metro,
+    pinnacle: Pinnacle,
+    onyx: Onyx,
+    cosmopolitan: Cosmopolitan,
 };
 
 export default function ReviewPage() {
