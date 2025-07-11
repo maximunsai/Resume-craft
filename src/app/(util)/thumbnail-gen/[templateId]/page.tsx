@@ -1,22 +1,25 @@
-// src/app/(util)/thumbnail-gen/[templateId]/page.tsx
+// src/app/(util)/thumbnail-gen/[templateId]/page.tsx - CORRECTED
 
-// VERIFY THIS IMPORT: We are correctly importing the "Minimalist" component.
-import { Minimalist } from "@/components/templates/Minimalist"; 
-import { Executive } from "@/components/templates/Executive";
 import { Modernist } from "@/components/templates/Modernist";
 import { Classic } from "@/components/templates/Classic";
+import { Minimalist } from "@/components/templates/Minimalist";
+import { Executive } from "@/components/templates/Executive";
+import { Creative } from "@/components/templates/Creative"; // Import new
+import { Technical } from "@/components/templates/Technical"; // Import new
 import { placeholderResumeData } from "@/lib/placeholder-data";
 
-// VERIFY THIS MAP: The key is "minimalist" (lowercase L).
+// All keys are lowercase to match the URL parameters.
 const templateMap = {
     modernist: Modernist,
     classic: Classic,
     minimalist: Minimalist,
     executive: Executive,
+    creative: Creative,
+    technical: Technical, // <-- Key is 'technical' (lowercase)
 };
 
 export default function ThumbnailGeneratorPage({ params }: { params: { templateId: string } }) {
-    const { templateId } = params; // This will be "minimalist" from the URL
+    const { templateId } = params;
     
     const SelectedTemplate = templateMap[templateId as keyof typeof templateMap];
 

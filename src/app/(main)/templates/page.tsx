@@ -43,17 +43,22 @@ export default function TemplateSelectionPage() {
     const { templateId, setTemplateId, setAiGenerated, ...resumeData } = useResumeStore();
 
     const handleGenerateResume = async () => {
-        // We will add more template components later. For now, we check if the selected
-        // one is one of the two we have actually built ('modernist' or 'classic').
-        // If not, we alert the user. This is temporary until we build all components.
-        if (templateId !== 'modernist' && templateId !== 'classic') {
-            alert('This template is not yet available for generation. Please select "Modernist" or "Classic".');
-            return;
+        // ================================================================
+        // THE FIX FOR PROBLEM 1 IS HERE
+        // ================================================================
+        // Define an array of templates that are actually ready for generation.
+        const availableTemplates = ['modernist', 'classic', 'minimalist', 'executive'];
+
+        // Check if the selected template is in our list of available ones.
+        if (!availableTemplates.includes(templateId)) {
+            alert(`Sorry, the "${templateId}" template is not yet available for generation. Please select one of the following: ${availableTemplates.join(', ')}.`);
+            return; // Stop the function if the template isn't ready.
         }
+        // ================================================================
 
         setIsLoading(true);
-        // Clear any old AI data - commenting out if causing type issues
-        // setAiGenerated(null);
+        // Clear any old AI data - removing the null assignment that causes type errors
+        // The new AI data will overwrite the old data anyway
 
         try {
             const response = await fetch('/api/generate-resume', {
