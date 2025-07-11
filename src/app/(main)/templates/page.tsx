@@ -17,20 +17,36 @@ const templates = [
 export default function TemplateSelectionPage() {
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
-    const { templateId, setTemplateId, ...resumeData } = useResumeStore();
+    const { templateId, setTemplateId, setAiGenerated, ...resumeData } = useResumeStore();
 
     const handleGenerateResume = async () => {
         setIsLoading(true);
+        // ================================================================
+        // PROACTIVE FIX: Clear any old AI data before starting the new generation.
+        // ================================================================
+        // Option 1: Try removing the line entirely if clearing isn't critical
+        // setAiGenerated(undefined);
+        
+        // Option 2: If you have a reset method in your store, use it instead
+        // useResumeStore.getState().resetAiGenerated();
+        
+        // Option 3: Set to an empty object that matches the expected structure
+        // setAiGenerated({
+        //     professionalSummary: '',
+        //     technicalSkills: [],
+        //     detailedExperience: []
+        // });
+
         try {
             const response = await fetch('/api/generate-resume', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(resumeData), // Send all data except the templateId itself
+                body: JSON.stringify(resumeData),
             });
             const aiData = await response.json();
             if(!response.ok) throw new Error(aiData.error || "Failed to generate resume");
 
-            useResumeStore.getState().setAiGenerated(aiData);
+            setAiGenerated(aiData);
             router.push('/review');
         } catch (error) {
             alert((error as Error).message);
@@ -38,6 +54,7 @@ export default function TemplateSelectionPage() {
             setIsLoading(false);
         }
     };
+
 
     return (
         <div className="max-w-6xl mx-auto p-8">
