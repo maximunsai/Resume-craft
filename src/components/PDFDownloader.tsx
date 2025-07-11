@@ -26,10 +26,17 @@ export interface ResumeData {
 }
 import { ModernistPDF } from './pdf-templates/ModernistPDF';
 import { ClassicPDF } from './pdf-templates/ClassicPDF';
+import { MinimalistPDF } from './pdf-templates/MinimalistPDF';
+import { ExecutivePDF } from './pdf-templates/ExecutivePDF';
+
+
 
 const pdfTemplateMap = {
     modernist: ModernistPDF,
     classic: ClassicPDF,
+    minimalist: MinimalistPDF,
+    executive: ExecutivePDF, 
+
 };
 // =======================================================
 
