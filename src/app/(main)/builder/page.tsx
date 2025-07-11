@@ -38,7 +38,6 @@ const ExperienceForm = () => {
     );
 };
 
-
 export default function BuilderPage() {
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
@@ -65,21 +64,30 @@ export default function BuilderPage() {
         }
     };
 
-    return (
+     return (
         <div className="max-w-4xl mx-auto p-8 bg-[#F8F7F4]">
             <h1 className="text-4xl font-bold text-center mb-8 text-[#0A2647]">Build Your Resume</h1>
             <div className="space-y-8">
                 <PersonalForm />
                 <ExperienceForm />
-                {/* Add forms for Skills, Education, etc. here */}
+                {/* ... other form parts ... */}
                  <div>
                     <h2 className="text-2xl font-bold mb-4 text-[#0A2647]">Anything Else?</h2>
-                    <textarea className="w-full p-2 border rounded" placeholder="Key achievements, awards, career goals..." onChange={e => resumeData.setFinalThoughts(e.target.value)} />
+                    <textarea 
+                        className="w-full p-2 border rounded" 
+                        placeholder="Key achievements, awards, career goals..." 
+                        onChange={e => useResumeStore.getState().setFinalThoughts(e.target.value)} 
+                    />
                 </div>
             </div>
             <div className="text-center mt-8">
-                <button onClick={handleSubmit} disabled={isLoading} className="px-8 py-4 bg-[#205295] text-white font-bold rounded-lg text-xl disabled:bg-gray-400">
-                    {isLoading ? 'Crafting Your Story...' : 'Generate My Resume'}
+                {/* Fixed: Changed handleNextStep to handleSubmit */}
+                <button 
+                    onClick={handleSubmit} 
+                    disabled={isLoading}
+                    className="px-8 py-4 bg-[#205295] text-white font-bold rounded-lg text-xl disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                    {isLoading ? 'Generating...' : 'Next: Choose Template'}
                 </button>
             </div>
         </div>

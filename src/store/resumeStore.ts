@@ -1,7 +1,8 @@
-// src/store/resumeStore.ts - FULL REPLACEMENT (FIXED)
+// src/store/resumeStore.ts
+
 import { create } from 'zustand';
 
-// --- DEFINE TYPES ---
+// --- (Keep all the existing types: PersonalDetails, Experience, etc.) ---
 type PersonalDetails = {
     name: string;
     email: string;
@@ -9,7 +10,6 @@ type PersonalDetails = {
     linkedin: string;
     github: string;
 };
-
 type Experience = {
     id: number;
     company: string;
@@ -18,15 +18,12 @@ type Experience = {
     endDate: string;
     description: string;
 };
-
-// Define a specific type for the AI-generated content
 type AiGeneratedContent = {
     professionalSummary: string;
     technicalSkills: string[];
     detailedExperience: { 
         id: number; 
         points: string[];
-        // Also add company/title from the original experience for context
         company: string;
         title: string;
     }[];
@@ -38,13 +35,15 @@ type ResumeState = {
     skills: string;
     finalThoughts: string;
     aiGenerated: AiGeneratedContent | null;
+    templateId: string; // <-- NEW: To store the selected template ID
     setPersonal: (details: Partial<PersonalDetails>) => void;
     addExperience: () => void;
     updateExperience: (id: number, field: keyof Experience, value: string) => void;
     removeExperience: (id: number) => void;
     setSkills: (skills: string) => void;
     setFinalThoughts: (thoughts: string) => void;
-    setAiGenerated: (data: AiGeneratedContent) => void; // Use the specific type here
+    setAiGenerated: (data: AiGeneratedContent) => void;
+    setTemplateId: (id:string) => void; // <-- NEW: Setter function
     resetStore: () => void;
 };
 
@@ -54,6 +53,7 @@ const initialState = {
     skills: '',
     finalThoughts: '',
     aiGenerated: null,
+    templateId: 'modernist', // <-- NEW: Default template
 };
 
 export const useResumeStore = create<ResumeState>((set) => ({
@@ -70,6 +70,7 @@ export const useResumeStore = create<ResumeState>((set) => ({
     })),
     setSkills: (skills) => set({ skills }),
     setFinalThoughts: (thoughts) => set({ finalThoughts: thoughts }),
-    setAiGenerated: (data) => set({ aiGenerated: data }), // This now expects the correct type
+    setAiGenerated: (data) => set({ aiGenerated: data }),
+    setTemplateId: (id) => set({ templateId: id }), // <-- NEW: Implementation
     resetStore: () => set(initialState)
 }));
