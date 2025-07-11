@@ -1,4 +1,4 @@
-// src/app/(main)/review/page.tsx
+// src/app/(main)/review/page.tsx - CORRECTED AND FINAL
 
 'use client';
 
@@ -7,9 +7,13 @@ import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import type { ResumeData } from '@/components/PDFDownloader';
 
-// Import all your preview components
+// Import ALL your live preview components
 import { Modernist } from '@/components/templates/Modernist';
-import { Classic } from '@/components/templates/Classic'; // Your new template component
+import { Classic } from '@/components/templates/Classic';
+import { Minimalist } from '@/components/templates/Minimalist';
+import { Executive } from '@/components/templates/Executive';
+import { Creative } from '@/components/templates/Creative';
+import { Technical } from '@/components/templates/Technical';
 
 // Dynamically import the PDFDownloader to avoid SSR issues
 const PDFDownloader = dynamic(
@@ -17,29 +21,36 @@ const PDFDownloader = dynamic(
   { ssr: false }
 );
 
-// A map to easily select the correct template component
+// This map MUST have lowercase keys that match your template IDs
 const templateMap = {
     modernist: Modernist,
     classic: Classic,
+    minimalist: Minimalist,
+    executive: Executive,
+    creative: Creative,
+    technical: Technical,
 };
 
 export default function ReviewPage() {
-    const data = useResumeStore(state => state);
+    // Select ALL necessary data from the Zustand store
+    const { personal, experience, aiGenerated, templateId } = useResumeStore();
     const router = useRouter();
 
-    // Check if aiGenerated data exists, if not redirect
-    if (!data.aiGenerated) {
-        router.push('/');
-        return null; // Return null to prevent rendering while redirecting
+    // If the page is loaded without AI data, redirect back to the builder
+    if (!aiGenerated) {
+        if (typeof window !== 'undefined') {
+          router.push('/builder');
+        }
+        return <div className="text-center p-8">Redirecting...</div>;
     }
-
-    // This logic to combine data is correct, now with proper null checking
+    
+    // Combine user data and AI data into the final object for rendering
     const resumeData: ResumeData = { 
-        ...data.personal, 
-        professionalSummary: data.aiGenerated.professionalSummary,
-        technicalSkills: data.aiGenerated.technicalSkills,
-        detailedExperience: data.experience.map(exp => {
-            const aiExp = data.aiGenerated!.detailedExperience.find(ai => ai.id === exp.id);
+        ...personal, 
+        professionalSummary: aiGenerated.professionalSummary,
+        technicalSkills: aiGenerated.technicalSkills,
+        detailedExperience: experience.map(exp => {
+            const aiExp = aiGenerated!.detailedExperience.find(ai => ai.id === exp.id);
             return {
                 id: exp.id,
                 title: exp.title,
@@ -49,8 +60,11 @@ export default function ReviewPage() {
         })
     };
 
-    // Dynamically select the component to render based on the stored templateId
-    const SelectedTemplateComponent = templateMap[data.templateId as keyof typeof templateMap] || Modernist;
+    // =================================================================
+    // THE FIX IS HERE: Dynamically select the component to render
+    // based on the `templateId` from the store.
+    // =================================================================
+    const SelectedTemplateComponent = templateMap[templateId as keyof typeof templateMap] || Modernist;
 
     return (
         <div className="max-w-4xl mx-auto p-8 bg-gray-100">
@@ -58,12 +72,15 @@ export default function ReviewPage() {
             <p className="text-center mb-8">Your professional resume is ready! If you are happy, download it as a PDF.</p>
             
             <div className="mb-8">
-                {/* IMPORTANT: Pass the templateId to the downloader */}
-                <PDFDownloader resumeData={resumeData} templateId={data.templateId} />
+                {/* 
+                  THE SECOND FIX IS HERE: We pass both the `resumeData` AND the `templateId`
+                  as props to the PDFDownloader component.
+                */}
+                <PDFDownloader resumeData={resumeData} templateId={templateId} />
             </div>
 
             <div className="p-8 bg-white shadow-lg">
-                {/* Render the dynamically selected template */}
+                {/* Render the dynamically selected template for the live preview */}
                 <SelectedTemplateComponent data={resumeData} />
             </div>
         </div>
