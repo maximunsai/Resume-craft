@@ -193,16 +193,3 @@ export const LandingPageClient = () => {
   );
 };
 
-// Add this animation keyframe to your globals.css to make the popup animate in
-/* 
-@keyframes scaleIn {
-  from { transform: scale(0.9); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
-
-.animate-in {
-  animation-name: scaleIn;
-  animation-duration: 300ms;
-  animation-timing-function: ease-out;
-}
-*/

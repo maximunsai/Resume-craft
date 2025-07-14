@@ -1,19 +1,23 @@
-// src/components/pdf-templates/ExecutivePDF.tsx
+// src/components/pdf-templates/ExecutivePDF.tsx - CORRECTED VERSION
 
-import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Font, Link } from '@react-pdf/renderer';
 import type { ResumeData } from '../PDFDownloader';
 
-// Register fonts
-Font.register({
-  family: 'Lato', // A clean, professional sans-serif font
+// =================================================================
+// THE FIX IS HERE: We are explicitly registering the 'Lato' font family
+// with all the weights that our styles might use (regular, bold, and heavy for the name).
+// =================================================================
+Font.register({ 
+  family: 'Lato', 
   fonts: [
     { src: 'https://cdn.jsdelivr.net/npm/lato-font@3.0.0/fonts/lato-regular.ttf' },
     { src: 'https://cdn.jsdelivr.net/npm/lato-font@3.0.0/fonts/lato-bold.ttf', fontWeight: 'bold' },
     { src: 'https://cdn.jsdelivr.net/npm/lato-font@3.0.0/fonts/lato-black.ttf', fontWeight: 'heavy' },
   ]
 });
+// =================================================================
 
-// Create styles
+// The styles object is correct as it uses the 'Lato' font we just registered.
 const styles = StyleSheet.create({
     page: { 
         flexDirection: 'column', 
@@ -21,7 +25,6 @@ const styles = StyleSheet.create({
         fontSize: 10,
         color: '#333'
     },
-    // Header section with a dark background
     header: {
         backgroundColor: '#2d3748', // Corresponds to Tailwind's gray-800
         color: 'white',
@@ -30,27 +33,23 @@ const styles = StyleSheet.create({
     },
     name: {
         fontSize: 28,
-        fontWeight: 'heavy',
+        fontWeight: 'heavy', // Using the 'black' weight we registered
         textTransform: 'uppercase',
         letterSpacing: 4,
     },
-    // Main content area
     main: {
         flexDirection: 'row',
         flex: 1,
     },
-    // Left column for contact info and skills
     leftColumn: {
         width: '33%',
         backgroundColor: '#f7fafc', // Corresponds to Tailwind's gray-100
         padding: 20,
     },
-    // Right column for summary and experience
     rightColumn: {
         width: '67%',
         padding: 20,
     },
-    // General section styling
     section: {
         marginBottom: 20,
     },
@@ -62,7 +61,6 @@ const styles = StyleSheet.create({
         letterSpacing: 1,
         marginBottom: 10,
     },
-    // Specific text styles
     contactItem: {
         fontSize: 9,
         marginBottom: 4,
@@ -100,7 +98,7 @@ const styles = StyleSheet.create({
     },
 });
 
-// Create document component
+// The main component is correct. I've added <Link> tags.
 export const ExecutivePDF = ({ data }: { data: ResumeData }) => (
   <Document author="ResumeCraft AI" title={`${data.name} Resume - Executive`}>
     <Page size="A4" style={styles.page}>
@@ -114,9 +112,9 @@ export const ExecutivePDF = ({ data }: { data: ResumeData }) => (
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Contact</Text>
                     <Text style={styles.contactItem}>{data.phone}</Text>
-                    <Text style={styles.contactItem}>{data.email}</Text>
-                    <Text style={styles.contactItem}>{data.linkedin}</Text>
-                    <Text style={styles.contactItem}>{data.github}</Text>
+                    <Link src={`mailto:${data.email}`} style={styles.contactItem}>{data.email}</Link>
+                    <Link src={data.linkedin} style={styles.contactItem}>{data.linkedin}</Link>
+                    <Link src={data.github} style={styles.contactItem}>{data.github}</Link>
                 </View>
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Technical Skills</Text>
