@@ -65,7 +65,7 @@ export async function POST(request: Request) {
         // The `generateContent` call now only takes the prompt.
         // =====================================================================
         const model = genAI.getGenerativeModel({ 
-            model: "gemini-1.5-flash-latest",
+            model: "gemini-pro",
             safetySettings: safetySettings // Moved to here
         });
 
