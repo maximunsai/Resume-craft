@@ -1,11 +1,24 @@
-// src/app/layout.tsx - THE FINAL FIX
+// src/app/layout.tsx
 
 import type { Metadata } from "next";
+// Import the necessary fonts from Google Fonts
+import { Inter, Poppins } from "next/font/google";
 import "./globals.css";
 
+// Configure the fonts
+const inter = Inter({ 
+    subsets: ["latin"],
+    variable: '--font-inter', // Create a CSS variable
+});
+const poppins = Poppins({ 
+    subsets: ["latin"],
+    weight: ['400', '600', '700', '800'],
+    variable: '--font-poppins', // Create another CSS variable
+});
+
 export const metadata: Metadata = {
-  title: "ResumeCraft AI",
-  description: "Build your professional, ATS-friendly resume in minutes.",
+  title: "ResumeCraft AI | Forge Your Future with AI-Crafted Resumes",
+  description: "Our master AI forge transforms your career raw materials into interview-winning masterpieces.",
 };
 
 export default function RootLayout({
@@ -15,16 +28,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head>
-        {/*
-          This is the traditional, stable way to load Google Fonts.
-          It bypasses the entire next/font optimization system that is causing the error.
-        */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet" />
-      </head>
-      <body>
+      {/* Apply the font variables to the body */}
+      <body className={`${inter.variable} ${poppins.variable}`}>
         {children}
       </body>
     </html>

@@ -16,10 +16,10 @@ export const SignOutButton = () => {
         router.refresh(); 
     };
 
-    return (
+     return (
         <button
             onClick={handleSignOut}
-            className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+            className="px-4 py-2 text-sm font-semibold text-gray-900 bg-yellow-400 border border-transparent rounded-lg shadow-sm hover:bg-yellow-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
         >
             Sign Out
         </button>

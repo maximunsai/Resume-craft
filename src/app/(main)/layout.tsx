@@ -10,31 +10,25 @@ export default async function MainLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = createClient(); 
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  // Check for an active user session
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  // If no user is found, redirect them to the login page.
   if (!user) {
     redirect('/login');
   }
 
-  // If a user is found, render the protected content
-  // WITH our new header that includes the Sign Out button.
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* App Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-          {/* You can put your app logo or name here */}
-          <h1 className="text-xl font-bold text-gray-800">ResumeCraft AI</h1>
+    // The main background color is now handled by globals.css
+    <div className="min-h-screen">
+      {/* App Header - Styled to match the landing page */}
+      <header className="bg-gray-900/95 backdrop-blur-sm border-b border-gray-700 sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto py-3 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
+          {/* App Logo/Name */}
+          <h1 className="font-poppins font-bold text-xl text-white">ResumeCraft</h1>
           
           {/* User Info and Sign Out Button */}
           <div className="flex items-center space-x-4">
-            <span className="text-sm text-gray-600 hidden sm:block">
+            <span className="text-sm text-gray-400 hidden sm:block">
               {user.email}
             </span>
             <SignOutButton />

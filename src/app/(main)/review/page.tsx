@@ -1,5 +1,3 @@
-// src/app/(main)/review/page.tsx - CORRECTED AND FINAL
-
 'use client';
 
 import { useResumeStore } from '@/store/resumeStore';
@@ -14,17 +12,17 @@ import { Minimalist } from '@/components/templates/Minimalist';
 import { Executive } from '@/components/templates/Executive';
 import { Creative } from '@/components/templates/Creative';
 import { Technical } from '@/components/templates/Technical';
-import { Academic } from "@/components/templates/Academic"; 
-import { Corporate } from "@/components/templates/Corporate";
-import { Bold } from "@/components/templates/Bold"; 
-import { Elegant } from "@/components/templates/Elegant"; 
-import { Simple } from "@/components/templates/Simple";  
-import { Cascade } from "@/components/templates/Cascade";  
-import { Apex } from "@/components/templates/Apex";  
-import { Metro } from "@/components/templates/Metro";  
-import { Pinnacle } from "@/components/templates/Pinnacle";  
-import { Onyx } from "@/components/templates/Onyx";  
-import { Cosmopolitan } from "@/components/templates/Cosmopolitan";  
+import { Academic } from '@/components/templates/Academic';
+import { Corporate } from '@/components/templates/Corporate';
+import { Simple } from '@/components/templates/Simple';
+import { Bold } from '@/components/templates/Bold';
+import { Elegant } from '@/components/templates/Elegant';
+import { Apex } from '@/components/templates/Apex';
+import { Cascade } from '@/components/templates/Cascade';
+import { Metro } from '@/components/templates/Metro';
+import { Pinnacle } from '@/components/templates/Pinnacle';
+import { Onyx } from '@/components/templates/Onyx';
+import { Cosmopolitan } from '@/components/templates/Cosmopolitan';
 
 // Dynamically import the PDFDownloader to avoid SSR issues
 const PDFDownloader = dynamic(
@@ -34,36 +32,21 @@ const PDFDownloader = dynamic(
 
 // This map MUST have lowercase keys that match your template IDs
 const templateMap = {
-    modernist: Modernist,
-    classic: Classic,
-    minimalist: Minimalist,
-    executive: Executive,
-    creative: Creative,
-    technical: Technical,
-    academic: Academic, 
-    corporate: Corporate,
-    simple: Simple, 
-    elegant: Elegant, 
-    bold: Bold,
-    cascade: Cascade,
-    apex: Apex,
-    metro: Metro,
-    pinnacle: Pinnacle,
-    onyx: Onyx,
-    cosmopolitan: Cosmopolitan,
+    modernist: Modernist, classic: Classic, executive: Executive, minimalist: Minimalist,
+    creative: Creative, academic: Academic, technical: Technical, corporate: Corporate,
+    simple: Simple, bold: Bold, elegant: Elegant, apex: Apex, cascade: Cascade,
+    metro: Metro, pinnacle: Pinnacle, onyx: Onyx, cosmopolitan: Cosmopolitan,
 };
 
 export default function ReviewPage() {
-    // Select ALL necessary data from the Zustand store
     const { personal, experience, aiGenerated, templateId } = useResumeStore();
     const router = useRouter();
 
-    // If the page is loaded without AI data, redirect back to the builder
     if (!aiGenerated) {
         if (typeof window !== 'undefined') {
           router.push('/builder');
         }
-        return <div className="text-center p-8">Redirecting...</div>;
+        return <div className="text-center p-8 text-gray-400">Loading your masterpiece or redirecting...</div>;
     }
     
     // Combine user data and AI data into the final object for rendering
@@ -82,27 +65,21 @@ export default function ReviewPage() {
         })
     };
 
-    // =================================================================
-    // THE FIX IS HERE: Dynamically select the component to render
-    // based on the `templateId` from the store.
-    // =================================================================
     const SelectedTemplateComponent = templateMap[templateId as keyof typeof templateMap] || Modernist;
 
     return (
-        <div className="max-w-4xl mx-auto p-8 bg-gray-100">
-            <h1 className="text-3xl font-bold text-center mb-4">Review Your Resume</h1>
-            <p className="text-center mb-8">Your professional resume is ready! If you are happy, download it as a PDF.</p>
+        <div className="max-w-4xl mx-auto p-8">
+            <div className="text-center mb-10">
+                <h1 className="text-4xl font-poppins font-bold text-white">Your Forged Resume is Ready</h1>
+                <p className="text-lg text-gray-400 mt-2">Review your masterpiece. If you're happy, download your weapon of choice.</p>
+            </div>
             
-            <div className="mb-8">
-                {/* 
-                  THE SECOND FIX IS HERE: We pass both the `resumeData` AND the `templateId`
-                  as props to the PDFDownloader component.
-                */}
+            <div className="mb-8 max-w-sm mx-auto">
                 <PDFDownloader resumeData={resumeData} templateId={templateId} />
             </div>
 
-            <div className="p-8 bg-white shadow-lg">
-                {/* Render the dynamically selected template for the live preview */}
+            {/* The resume preview card with a white background to make the content pop */}
+            <div className="p-8 md:p-12 bg-white shadow-2xl rounded-lg">
                 <SelectedTemplateComponent data={resumeData} />
             </div>
         </div>

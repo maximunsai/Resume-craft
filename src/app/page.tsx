@@ -1,31 +1,19 @@
-// src/app/page.tsx - The new, intelligent homepage
+// src/app/page.tsx
 
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
+import { LandingPageClient } from '@/components/LandingPageClient'; // Import our new client component
 
-// This is an async Server Component, which is perfect for this task.
-export default async function HomePage() {
-  
-  // Create a Supabase client to check the user's auth status on the server.
-  const supabase = createClient();
+// This is a Server Component. It runs on the server before anything is sent to the browser.
+export default async function Page() {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
-  // Check if a user is currently logged in.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    // If the user is logged in, redirect them immediately to the app.
+    if (user) {
+        redirect('/builder');
+    }
 
-  // THE LOGIC:
-  // If a user is logged in, send them straight to the resume builder.
-  // If no user is logged in, send them to the login page to get started.
-  if (user) {
-    redirect('/builder');
-  } else {
-    redirect('/login');
-  }
-
-  // This part of the component will never actually be rendered,
-  // because the user will always be redirected first.
-  // But we include it to have a valid return type.
-  return null;
-  
+    // If no user is logged in, render the beautiful landing page UI.
+    return <LandingPageClient />;
 }

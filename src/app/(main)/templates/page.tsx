@@ -1,5 +1,3 @@
-// src/app/(main)/templates/page.tsx
-
 'use client';
 
 import { useResumeStore } from '@/store/resumeStore';
@@ -7,12 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import Image from 'next/image';
 
-// =================================================================
-// EXPANDED TEMPLATE LIST
-// We are "stubbing" these out. You will need to create the corresponding
-// .png files in your `/public/thumbnails/` folder.
-// For now, you can just copy `modernist.png` and rename it for all of them as placeholders.
-// =================================================================
+// The full list of templates we have designed
 const templates = [
     { id: 'modernist', name: 'Modernist', thumbnailUrl: '/thumbnails/modernist.png' },
     { id: 'classic', name: 'Classic', thumbnailUrl: '/thumbnails/classic.png' },
@@ -22,43 +15,40 @@ const templates = [
     { id: 'academic', name: 'Academic', thumbnailUrl: '/thumbnails/academic.png' },
     { id: 'technical', name: 'Technical', thumbnailUrl: '/thumbnails/technical.png' },
     { id: 'corporate', name: 'Corporate', thumbnailUrl: '/thumbnails/corporate.png' },
-    { id: 'onyx', name: 'Onyx', thumbnailUrl: '/thumbnails/onyx.png' },
-    // { id: 'harvard', name: 'Harvard', thumbnailUrl: '/thumbnails/harvard.png' },
-    // { id: 'stanford', name: 'Stanford', thumbnailUrl: '/thumbnails/stanford.png' },
-    // { id: 'aether', name: 'Aether', thumbnailUrl: '/thumbnails/aether.png' },
     { id: 'simple', name: 'Simple', thumbnailUrl: '/thumbnails/simple.png' },
     { id: 'bold', name: 'Bold', thumbnailUrl: '/thumbnails/bold.png' },
     { id: 'elegant', name: 'Elegant', thumbnailUrl: '/thumbnails/elegant.png' },
     { id: 'apex', name: 'Apex', thumbnailUrl: '/thumbnails/apex.png' },
-    { id: 'cosmopolitan', name: 'Cosmopolitan', thumbnailUrl: '/thumbnails/cosmopolitan.png' },
-    { id: 'pinnacle', name: 'Pinnacle', thumbnailUrl: '/thumbnails/pinnacle.png' },
     { id: 'cascade', name: 'Cascade', thumbnailUrl: '/thumbnails/cascade.png' },
     { id: 'metro', name: 'Metro', thumbnailUrl: '/thumbnails/metro.png' },
+    { id: 'pinnacle', name: 'Pinnacle', thumbnailUrl: '/thumbnails/pinnacle.png' },
+    { id: 'onyx', name: 'Onyx', thumbnailUrl: '/thumbnails/onyx.png' },
+    { id: 'cosmopolitan', name: 'Cosmopolitan', thumbnailUrl: '/thumbnails/cosmopolitan.png' },
 ];
 
 export default function TemplateSelectionPage() {
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
-    // We get the selected templateId and the setter function from our state store
     const { templateId, setTemplateId, setAiGenerated, ...resumeData } = useResumeStore();
 
     const handleGenerateResume = async () => {
-        // ================================================================
-        // THE FIX FOR PROBLEM 1 IS HERE
-        // ================================================================
-        // Define an array of templates that are actually ready for generation.
-        const availableTemplates = ['modernist', 'classic', 'minimalist', 'executive', 'creative', 'technical', 'corporate', 'academic', 'bold', 'elegant', 'simple', 'apex', 'cascade', 'metro', 'pinnacle', 'onyx', 'cosmopolitan'];
+        // This list now includes all the templates we have built.
+        const availableTemplates = [
+            'modernist', 'classic', 'executive', 'minimalist', 'creative', 
+            'academic', 'technical', 'corporate', 'simple', 'bold', 
+            'elegant', 'apex', 'cascade', 'metro', 'pinnacle', 'onyx', 'cosmopolitan'
+        ];
 
-        // Check if the selected template is in our list of available ones.
         if (!availableTemplates.includes(templateId)) {
-            alert(`Sorry, the "${templateId}" template is not yet available for generation. Please select one of the following: ${availableTemplates.join(', ')}.`);
-            return; // Stop the function if the template isn't ready.
+            // Using a more theme-consistent alert
+            alert(`Sorry, the "${templateId}" template is not yet available for generation.`);
+            return;
         }
-        // ================================================================
 
         setIsLoading(true);
-        // Clear any old AI data - removing the null assignment that causes type errors
-        // The new AI data will overwrite the old data anyway
+        // It's good practice to clear old AI data if it exists.
+        // We can do this without causing type errors by directly calling the setter from the store hook.
+        useResumeStore.setState({ aiGenerated: null });
 
         try {
             const response = await fetch('/api/generate-resume', {
@@ -79,10 +69,11 @@ export default function TemplateSelectionPage() {
     };
 
     return (
-        <div className="max-w-6xl mx-auto p-8 bg-white">
+        // The page now has no background color, inheriting it from globals.css
+        <div className="max-w-7xl mx-auto p-8">
             <div className="text-center mb-10">
-                <h1 className="text-4xl font-bold text-gray-800">Choose Your Template</h1>
-                <p className="text-lg text-gray-500 mt-2">Select a professionally designed format. Click to preview, then generate.</p>
+                <h1 className="text-4xl font-bold font-poppins text-white">Choose Your Template</h1>
+                <p className="text-lg text-gray-400 mt-2">Select a professionally designed format. Click to select, then generate.</p>
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
@@ -92,10 +83,10 @@ export default function TemplateSelectionPage() {
                         className="group cursor-pointer"
                         onClick={() => setTemplateId(template.id)}
                     >
+                        {/* Updated card styling for the dark theme */}
                         <div 
-                            className={`bg-white rounded-lg shadow-md overflow-hidden border-4 transition-all duration-300 ease-in-out ${templateId === template.id ? 'border-blue-600 scale-105 shadow-2xl' : 'border-transparent group-hover:border-blue-300 group-hover:shadow-xl'}`}
+                            className={`bg-gray-800 rounded-lg shadow-md overflow-hidden border-4 transition-all duration-300 ease-in-out ${templateId === template.id ? 'border-yellow-400 scale-105 shadow-2xl' : 'border-gray-700 group-hover:border-yellow-500/50'}`}
                         >
-                            {/* The Image component with proper styling */}
                             <Image 
                                 src={template.thumbnailUrl} 
                                 alt={template.name} 
@@ -104,7 +95,7 @@ export default function TemplateSelectionPage() {
                                 className="w-full h-auto object-cover object-top"
                             />
                         </div>
-                        <p className="text-center font-semibold p-2 mt-1 text-gray-700">{template.name}</p>
+                        <p className="text-center font-semibold p-2 mt-1 text-gray-300 group-hover:text-yellow-400">{template.name}</p>
                     </div>
                 ))}
             </div>
@@ -113,7 +104,7 @@ export default function TemplateSelectionPage() {
                 <button 
                     onClick={handleGenerateResume} 
                     disabled={isLoading} 
-                    className="px-12 py-4 bg-green-600 text-white font-bold rounded-lg text-xl disabled:bg-gray-400 hover:bg-green-700 shadow-lg"
+                    className="px-12 py-4 bg-yellow-400 text-gray-900 font-bold rounded-lg text-xl disabled:bg-gray-600 disabled:cursor-not-allowed hover:bg-yellow-500 shadow-lg"
                 >
                     {isLoading ? 'Crafting Your Masterpiece...' : 'Generate & Review'}
                 </button>
