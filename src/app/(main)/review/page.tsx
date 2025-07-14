@@ -26,8 +26,8 @@ import { Cosmopolitan } from '@/components/templates/Cosmopolitan';
 
 // Dynamically import the PDFDownloader to avoid SSR issues
 const PDFDownloader = dynamic(
-  () => import('@/components/PDFDownloader'),
-  { ssr: false }
+    () => import('@/components/PDFDownloader'),
+    { ssr: false }
 );
 
 // This map MUST have lowercase keys that match your template IDs
@@ -44,14 +44,14 @@ export default function ReviewPage() {
 
     if (!aiGenerated) {
         if (typeof window !== 'undefined') {
-          router.push('/builder');
+            router.push('/builder');
         }
         return <div className="text-center p-8 text-gray-400">Loading your masterpiece or redirecting...</div>;
     }
-    
+
     // Combine user data and AI data into the final object for rendering
-    const resumeData: ResumeData = { 
-        ...personal, 
+    const resumeData: ResumeData = {
+        ...personal,
         professionalSummary: aiGenerated.professionalSummary,
         technicalSkills: aiGenerated.technicalSkills,
         detailedExperience: experience.map(exp => {
@@ -73,9 +73,12 @@ export default function ReviewPage() {
                 <h1 className="text-4xl font-poppins font-bold text-white">Your Forged Resume is Ready</h1>
                 <p className="text-lg text-gray-400 mt-2">Review your masterpiece. If you're happy, download your weapon of choice.</p>
             </div>
-            
+
             <div className="mb-8 max-w-sm mx-auto">
-                <PDFDownloader resumeData={resumeData} templateId={templateId} />
+                <PDFDownloader
+                    resumeData={resumeData}
+                    templateId={templateId}
+                />
             </div>
 
             {/* The resume preview card with a white background to make the content pop */}
