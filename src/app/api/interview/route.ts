@@ -1,83 +1,48 @@
-// src/app/api/interview/route.ts - THE BULLETPROOF VERSION
+// src/app/api/interview/route.ts - THE STREAMING ARCHITECTURE
 
-import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Initialize the client and model (this is correct)
+// Initialize the client (safety settings are not used in streaming calls this way)
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-const safetySettings = [
-    { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-    { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
-    { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
-    { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-];
-const model = genAI.getGenerativeModel({ 
-    model: "gemini-1.5-flash-latest", 
-    safetySettings 
-});
+const model = genAI.getGenerativeModel({ model: "gemini-pro" }); // Using gemini-pro for stability
+
+// This tells Next.js to handle this route as a streaming endpoint
+export const runtime = 'edge';
 
 export async function POST(request: Request) {
-    try {
-        const body = await request.json();
-        const { resumeData = {}, conversationHistory = [] } = body;
+  try {
+    const { resumeData = {}, conversationHistory = [] } = await request.json();
 
-        // An even stronger, more explicit prompt for the AI
-        const system_instruction = `You are "Forge," an expert AI mock interviewer. Your personality is encouraging but professional.
-        Your task is to conduct a mock interview.
-        YOUR STRICT RULES:
-        1.  ANALYZE CONTEXT: Review the user's resume and the entire conversation history to ask the most relevant, logical next question. Do not repeat questions.
-        2.  PROVIDE FEEDBACK: After the user provides an answer, give one concise, constructive sentence of feedback.
-        3.  ASK THE NEXT QUESTION: After the feedback, ask a new question.
-        4.  JSON OUTPUT ONLY: Your entire response MUST be a single, raw, valid JSON object. It must start with { and end with }. Do not add any text, markdown, or explanations before or after the JSON.
+    const system_instruction = `You are "Forge," an expert AI mock interviewer. Your personality is encouraging but professional.
+    YOUR TASK:
+    1. ANALYZE CONTEXT: Review the user's resume and the entire conversation history to ask the most relevant, logical next question.
+    2. PROVIDE FEEDBACK & ASK QUESTION: First, provide one concise, constructive sentence of feedback. Then, ask the next question.
+    3. NATURAL RESPONSE: Respond as a human interviewer would. Do not use JSON. Just provide the feedback and question as a natural text response.`;
 
-        YOUR JSON RESPONSE FORMAT:
-        {
-          "feedback": "Your concise feedback here.",
-          "next_question": "Your next question here."
-        }`;
+    const prompt = `${system_instruction}\n\n---\n**USER RESUME DATA:**\n${JSON.stringify(resumeData)}\n\n---\n**CONVERSATION HISTORY:**\n${conversationHistory.map((msg: { sender: string; text: string; }) => `${msg.sender}: ${msg.text}`).join('\n')}\n\n---\nForge:`;
 
-        const prompt = `${system_instruction}\n\n---\n**USER RESUME DATA:**\n${JSON.stringify(resumeData)}\n\n---\n**CONVERSATION HISTORY (Last message is the user's latest answer):**\n${conversationHistory.map((msg: { sender: string; text: string; }) => `${msg.sender}: ${msg.text}`).join('\n')}\n---`;
+    // Get the streaming response from the AI
+    const result = await model.generateContentStream(prompt);
 
-        console.log("Sending prompt to Gemini..."); // Good for Vercel logs
-
-        const result = await model.generateContent(prompt);
-        const responseText = result.response.text();
-        
-        console.log("Received raw response from Gemini:", responseText); // CRITICAL for debugging
-
-        // =================================================================
-        // THE FIX IS HERE: A safer way to parse the JSON response
-        // =================================================================
-        let parsedResponse;
-        try {
-            // Find the first opening brace '{' and the last closing brace '}'
-            const firstBrace = responseText.indexOf('{');
-            const lastBrace = responseText.lastIndexOf('}');
-            
-            if (firstBrace === -1 || lastBrace === -1) {
-                // If no JSON object is found, we throw a specific error
-                throw new Error("AI response did not contain a JSON object.");
-            }
-            
-            const jsonString = responseText.substring(firstBrace, lastBrace + 1);
-            parsedResponse = JSON.parse(jsonString);
-
-        } catch (parseError) {
-            // This catch block handles cases where the extracted string is STILL not valid JSON
-            console.error("Failed to parse JSON from AI response. Raw text:", responseText);
-            // We'll create a fallback response to send to the user
-            return NextResponse.json({ 
-                error: "The AI returned an invalid format. Please try rephrasing your answer." 
-            }, { status: 500 });
+    // Create a new, readable stream to send back to our client
+    const stream = new ReadableStream({
+      async start(controller) {
+        for await (const chunk of result.stream) {
+          const chunkText = chunk.text();
+          // Encode the text chunk and send it to the client
+          controller.enqueue(new TextEncoder().encode(chunkText));
         }
-        // =================================================================
+        // Close the stream when the AI is done
+        controller.close();
+      },
+    });
 
-        console.log("Successfully parsed AI response:", parsedResponse);
-        return NextResponse.json(parsedResponse);
+    // Return the stream as the response
+    return new Response(stream);
 
-    } catch (error) {
-        console.error("Error in interview API route:", error);
-        const errorMessage = error instanceof Error ? error.message : 'An internal server error occurred';
-        return NextResponse.json({ error: errorMessage }, { status: 500 });
-    }
+  } catch (error) {
+    console.error("Error in interview stream API route:", error);
+    // In case of an error, return a proper error response
+    return new Response("Sorry, an error occurred while processing your request.", { status: 500 });
+  }
 }
