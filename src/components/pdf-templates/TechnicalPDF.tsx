@@ -117,59 +117,78 @@ const styles = StyleSheet.create({
   link: {
     color: '#3498db',
     textDecoration: 'none'
+  },
+  contactText: {
+    fontSize: 9,
+    color: '#666',
+    marginBottom: 2
   }
 });
 
 export const TechnicalPDF = ({ data }: { data: ResumeData }) => (
-  <Document author="ResumeCraft AI" title={`${data.name} Resume - Technical`}>
+  <Document author="ResumeCraft AI" title={`${data.name || 'Resume'} - Technical`}>
     <Page size="A4" style={styles.page}>
       <View style={styles.header} fixed>
         <View style={styles.headerLeft}>
-          <Text style={styles.name}>{data.name}</Text>
+          <Text style={styles.name}>{data.name || 'Your Name'}</Text>
         </View>
         <View style={styles.headerRight}>
-          <Text>{data.phone}</Text>
-          <Link src={`mailto:${data.email}`} style={styles.link}>
-            <Text>{data.email}</Text>
-          </Link>
-          <Link src={data.linkedin} style={styles.link}>
-            <Text>{data.linkedin}</Text>
-          </Link>
-          <Link src={data.github} style={styles.link}>
-            <Text>{data.github}</Text>
-          </Link>
+          {data.phone && (
+            <Text style={styles.contactText}>{data.phone}</Text>
+          )}
+          {data.email && (
+            <Link src={`mailto:${data.email}`} style={styles.link}>
+              <Text style={styles.contactText}>{data.email}</Text>
+            </Link>
+          )}
+          {data.linkedin && (
+            <Link src={data.linkedin} style={styles.link}>
+              <Text style={styles.contactText}>LinkedIn Profile</Text>
+            </Link>
+          )}
+          {data.github && (
+            <Link src={data.github} style={styles.link}>
+              <Text style={styles.contactText}>GitHub Profile</Text>
+            </Link>
+          )}
         </View>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>// SUMMARY</Text>
-        <Text style={styles.summaryText}>{data.professionalSummary}</Text>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>// TECHNICAL_SKILLS</Text>
-        <View style={styles.skillsContainer}>
-          <Text style={styles.skillsText}>
-            {data.technicalSkills.join(' | ')}
-          </Text>
+      {data.professionalSummary && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>// SUMMARY</Text>
+          <Text style={styles.summaryText}>{data.professionalSummary}</Text>
         </View>
-      </View>
+      )}
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>// PROFESSIONAL_EXPERIENCE</Text>
-        {data.detailedExperience.map((exp, index) => (
-          <View key={exp.id || index} style={styles.experienceItem} wrap={false}>
-            <Text style={styles.jobTitle}>{exp.title}</Text>
-            <Text style={styles.companyName}>{exp.company}</Text>
-            {exp.points.map((point, pIndex) => (
-              <View key={pIndex} style={styles.bulletPoint}>
-                <Text style={styles.bullet}>{'>'}</Text>
-                <Text style={styles.bulletText}>{point}</Text>
-              </View>
-            ))}
+      {data.technicalSkills && data.technicalSkills.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>// TECHNICAL_SKILLS</Text>
+          <View style={styles.skillsContainer}>
+            <Text style={styles.skillsText}>
+              {data.technicalSkills.join(' | ')}
+            </Text>
           </View>
-        ))}
-      </View>
+        </View>
+      )}
+
+      {data.detailedExperience && data.detailedExperience.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>// PROFESSIONAL_EXPERIENCE</Text>
+          {data.detailedExperience.map((exp, index) => (
+            <View key={exp.id || index} style={styles.experienceItem} wrap={false}>
+              <Text style={styles.jobTitle}>{exp.title || 'Position Title'}</Text>
+              <Text style={styles.companyName}>{exp.company || 'Company Name'}</Text>
+              {exp.points && exp.points.length > 0 && exp.points.map((point, pIndex) => (
+                <View key={pIndex} style={styles.bulletPoint}>
+                  <Text style={styles.bullet}>{'>'}</Text>
+                  <Text style={styles.bulletText}>{point}</Text>
+                </View>
+              ))}
+            </View>
+          ))}
+        </View>
+      )}
     </Page>
   </Document>
 );

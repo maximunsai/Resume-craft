@@ -45,7 +45,14 @@ const styles = StyleSheet.create({
         fontSize: 10, 
         fontFamily: 'Helvetica',
         color: '#555',
-        lineHeight: 1.3
+        lineHeight: 1.3,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    contactText: {
+        fontSize: 10,
+        color: '#555'
     },
     section: { 
         marginBottom: 20 
@@ -115,46 +122,63 @@ export const AcademicPDF = ({ data }: { data: ResumeData }) => (
     <Page size="A4" style={styles.page}>
         {/* Header Section */}
         <View style={styles.header}>
-            <Text style={styles.name}>{data.name}</Text>
+            <Text style={styles.name}>{data.name || 'Your Name'}</Text>
             <View style={styles.contact}>
-                <Link src={`mailto:${data.email}`} style={styles.contactLink}>
-                    {data.email}
-                </Link>
-                <Text> │ {data.phone} │ </Text>
-                <Link src={data.linkedin} style={styles.contactLink}>
-                    {data.linkedin}
-                </Link>
+                {data.email && (
+                    <Link src={`mailto:${data.email}`} style={styles.contactLink}>
+                        {data.email}
+                    </Link>
+                )}
+                {data.phone && (
+                    <Text style={styles.contactText}>
+                        {data.email ? ' │ ' : ''}{data.phone}
+                    </Text>
+                )}
+                {data.linkedin && (
+                    <>
+                        <Text style={styles.contactText}> │ </Text>
+                        <Link src={data.linkedin} style={styles.contactLink}>
+                            LinkedIn
+                        </Link>
+                    </>
+                )}
             </View>
         </View>
 
         {/* Abstract Section */}
-        <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Abstract</Text>
-            <Text style={styles.abstractText}>{data.professionalSummary}</Text>
-        </View>
+        {data.professionalSummary && (
+            <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Abstract</Text>
+                <Text style={styles.abstractText}>{data.professionalSummary}</Text>
+            </View>
+        )}
 
         {/* Research & Professional Experience Section */}
-        <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Research & Professional Experience</Text>
-            {data.detailedExperience.map(exp => (
-                <View key={exp.id} style={styles.experienceItem} wrap={false}>
-                    <Text style={styles.jobTitle}>{exp.title}</Text>
-                    <Text style={styles.companyName}>{exp.company}</Text>
-                    {exp.points.map((point, pIndex) => (
-                        <View key={pIndex} style={styles.bulletPoint}>
-                            <Text style={styles.bullet}>■</Text>
-                            <Text style={styles.bulletText}>{point}</Text>
-                        </View>
-                    ))}
-                </View>
-            ))}
-        </View>
+        {data.detailedExperience && data.detailedExperience.length > 0 && (
+            <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Research & Professional Experience</Text>
+                {data.detailedExperience.map((exp, index) => (
+                    <View key={exp.id || index} style={styles.experienceItem} wrap={false}>
+                        <Text style={styles.jobTitle}>{exp.title || 'Position Title'}</Text>
+                        <Text style={styles.companyName}>{exp.company || 'Company Name'}</Text>
+                        {exp.points && exp.points.length > 0 && exp.points.map((point, pIndex) => (
+                            <View key={pIndex} style={styles.bulletPoint}>
+                                <Text style={styles.bullet}>■</Text>
+                                <Text style={styles.bulletText}>{point}</Text>
+                            </View>
+                        ))}
+                    </View>
+                ))}
+            </View>
+        )}
 
         {/* Technical Proficiencies Section */}
-        <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Technical Proficiencies</Text>
-            <Text style={styles.skillsText}>{data.technicalSkills.join(', ')}</Text>
-        </View>
+        {data.technicalSkills && data.technicalSkills.length > 0 && (
+            <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Technical Proficiencies</Text>
+                <Text style={styles.skillsText}>{data.technicalSkills.join(', ')}</Text>
+            </View>
+        )}
     </Page>
   </Document>
 );
