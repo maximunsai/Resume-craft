@@ -3,18 +3,19 @@
 import { Document, Page, Text, View, StyleSheet, Font, Link } from '@react-pdf/renderer';
 import type { ResumeData } from '../PDFDownloader';
 
-Font.register({ 
-  family: 'Garamond', 
-  fonts: [
-    { src: 'https://cdn.jsdelivr.net/npm/eb-garamond@1.0.1/fonts/EBGaramond-Regular.ttf' },
-    { src: 'https://cdn.jsdelivr.net/npm/eb-garamond@1.0.1/fonts/EBGaramond-Bold.ttf', fontWeight: 'bold' },
-  ]
-});
+// Use system fonts for better reliability
+// Font.register({ 
+//   family: 'Garamond', 
+//   fonts: [
+//     { src: 'https://cdn.jsdelivr.net/npm/eb-garamond@1.0.1/fonts/EBGaramond-Regular.ttf' },
+//     { src: 'https://cdn.jsdelivr.net/npm/eb-garamond@1.0.1/fonts/EBGaramond-Bold.ttf', fontWeight: 'bold' },
+//   ]
+// });
 
 const styles = StyleSheet.create({
   page: { 
     padding: 50, 
-    fontFamily: 'Garamond', 
+    fontFamily: 'Times-Roman', // Use built-in font
     fontSize: 11,
     lineHeight: 1.4,
     backgroundColor: '#ffffff'
@@ -28,7 +29,7 @@ const styles = StyleSheet.create({
   },
   name: { 
     fontSize: 28, 
-    fontWeight: 'bold',
+    fontFamily: 'Times-Bold', // Use built-in bold font
     color: '#1a202c',
     marginBottom: 8,
     letterSpacing: 1
@@ -48,7 +49,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: { 
     fontSize: 14, 
-    fontWeight: 'bold', 
+    fontFamily: 'Times-Bold', // Use built-in bold font
     textTransform: 'uppercase', 
     marginBottom: 12,
     letterSpacing: 1.2,
@@ -74,7 +75,7 @@ const styles = StyleSheet.create({
   },
   jobTitle: { 
     fontSize: 13, 
-    fontWeight: 'bold',
+    fontFamily: 'Times-Bold', // Use built-in bold font
     color: '#2d3748',
     flex: 1
   },

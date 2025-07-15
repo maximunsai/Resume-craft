@@ -36,7 +36,8 @@ const styles = StyleSheet.create({
         height: 80,
         borderRadius: 40,
         backgroundColor: 'rgba(255, 255, 255, 0.2)',
-        border: '3px solid white',
+        borderWidth: 3,
+        borderColor: 'white',
         alignSelf: 'center',
         marginBottom: 20,
     },
@@ -116,7 +117,10 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255, 255, 255, 0.2)', 
         color: 'white', 
         borderRadius: 12, 
-        padding: '4px 8px', 
+        paddingTop: 4,
+        paddingBottom: 4,
+        paddingLeft: 8,
+        paddingRight: 8,
         fontSize: 8, 
         marginRight: 6, 
         marginBottom: 6,
@@ -141,23 +145,29 @@ export const CreativePDF = ({ data }: { data: ResumeData }) => (
             
             <View style={styles.section}>
                 <Text style={styles.sectionTitleLeft}>Contact</Text>
-                <Text style={styles.contactText}>{data.phone}</Text>
-                <Link src={`mailto:${data.email}`} style={styles.contactText}>
-                    {data.email}
-                </Link>
-                <Link src={data.linkedin} style={styles.contactText}>
-                    {data.linkedin}
-                </Link>
-                <Link src={data.github} style={styles.contactText}>
-                    {data.github}
-                </Link>
+                {data.phone && <Text style={styles.contactText}>{data.phone}</Text>}
+                {data.email && (
+                    <Link src={`mailto:${data.email}`} style={styles.contactText}>
+                        {data.email}
+                    </Link>
+                )}
+                {data.linkedin && (
+                    <Link src={data.linkedin} style={styles.contactText}>
+                        LinkedIn Profile
+                    </Link>
+                )}
+                {data.github && (
+                    <Link src={data.github} style={styles.contactText}>
+                        GitHub Profile
+                    </Link>
+                )}
             </View>
             
             <View style={styles.section}>
                 <Text style={styles.sectionTitleLeft}>Skills</Text>
                 <View style={styles.skillContainer}>
-                    {data.technicalSkills.map(skill => (
-                        <Text key={skill} style={styles.skillTag}>{skill}</Text>
+                    {data.technicalSkills && data.technicalSkills.map((skill, index) => (
+                        <Text key={index} style={styles.skillTag}>{skill}</Text>
                     ))}
                 </View>
             </View>
@@ -165,26 +175,30 @@ export const CreativePDF = ({ data }: { data: ResumeData }) => (
 
         {/* Right Column - Main Content */}
         <View style={styles.rightColumn}>
-            <View style={styles.section}>
-                <Text style={styles.sectionTitleRight}>Profile</Text>
-                <Text style={styles.profileText}>{data.professionalSummary}</Text>
-            </View>
+            {data.professionalSummary && (
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitleRight}>Profile</Text>
+                    <Text style={styles.profileText}>{data.professionalSummary}</Text>
+                </View>
+            )}
             
-            <View style={styles.section}>
-                <Text style={styles.sectionTitleRight}>Experience</Text>
-                {data.detailedExperience.map(exp => (
-                    <View key={exp.id} style={styles.experienceItem} wrap={false}>
-                        <Text style={styles.jobTitle}>{exp.title}</Text>
-                        <Text style={styles.companyName}>{exp.company}</Text>
-                        {exp.points.map((point, pIndex) => (
-                            <View key={pIndex} style={styles.bulletPoint}>
-                                <Text style={styles.bullet}>•</Text>
-                                <Text style={styles.bulletText}>{point}</Text>
-                            </View>
-                        ))}
-                    </View>
-                ))}
-            </View>
+            {data.detailedExperience && data.detailedExperience.length > 0 && (
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitleRight}>Experience</Text>
+                    {data.detailedExperience.map((exp, index) => (
+                        <View key={exp.id || index} style={styles.experienceItem} wrap={false}>
+                            <Text style={styles.jobTitle}>{exp.title}</Text>
+                            <Text style={styles.companyName}>{exp.company}</Text>
+                            {exp.points && exp.points.map((point, pIndex) => (
+                                <View key={pIndex} style={styles.bulletPoint}>
+                                    <Text style={styles.bullet}>•</Text>
+                                    <Text style={styles.bulletText}>{point}</Text>
+                                </View>
+                            ))}
+                        </View>
+                    ))}
+                </View>
+            )}
         </View>
     </Page>
   </Document>
