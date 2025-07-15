@@ -1,19 +1,14 @@
-// src/app/(main)/interview/session/page.tsx - CORRECTED
-
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
 import { useResumeStore } from '@/store/resumeStore';
 import { useInterviewStore, Message } from '@/store/interviewStore';
-import { Bot, User, CornerDownLeft, Send } from 'lucide-react'; // Added Send icon
+import { Bot, User, Send } from 'lucide-react';
 
 export default function InterviewSessionPage() {
-    // --- The interview store logic is correct and remains the same ---
     const { messages, isAwaitingResponse, addMessage, startNewInterview, setIsAwaitingResponse, addFeedbackToLastMessage } = useInterviewStore();
     
-    // =================================================================
-    // THE FIX IS HERE: We get the full state object first, then select the data we need.
-    // =================================================================
+    // Correctly get the resume data from the store
     const resumeState = useResumeStore();
     const resumeDataForApi = {
         name: resumeState.personal.name,
@@ -24,23 +19,26 @@ export default function InterviewSessionPage() {
     const [userInput, setUserInput] = useState('');
     const chatContainerRef = useRef<HTMLDivElement>(null);
 
-    // Start the interview on first load
+    // Start the interview on the first load
     useEffect(() => {
+        // This check prevents restarting the interview if the user navigates away and comes back
         if (messages.length === 0) {
-            // Use the correctly accessed name for the initial question
-            const initialQuestion = `Hello, ${resumeState.personal.name || 'there'}. Thanks for coming in today. To start, can you walk me through your resume?`;
+            const initialQuestion = `Hello, ${resumeState.personal.name || 'there'}. Thanks for your time today. To start, could you please walk me through your resume?`;
             startNewInterview(initialQuestion);
         }
-        // We only want this to run once on mount, so the dependency array is empty.
-    }, []);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Empty dependency array ensures this runs only once on mount
 
-    // Auto-scroll to the bottom of the chat
+    // Auto-scroll to the bottom of the chat on new messages
     useEffect(() => {
         if (chatContainerRef.current) {
             chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
         }
     }, [messages]);
 
+    // =================================================================
+    // THE IMPROVED FUNCTION TO HANDLE SUBMITTING AN ANSWER
+    // =================================================================
     const handleSubmitAnswer = async () => {
         if (!userInput.trim() || isAwaitingResponse) return;
 
@@ -54,27 +52,35 @@ export default function InterviewSessionPage() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    // Pass the correctly structured resume data to the API
                     resumeData: resumeDataForApi,
                     conversationHistory: [...messages, userMessage]
                 }),
             });
+            
             const data = await response.json();
 
-            if (response.ok) {
-                // Add feedback before the next question for better UX
-                if (data.feedback) {
-                    addFeedbackToLastMessage(data.feedback);
-                }
-                if (data.next_question) {
-                    addMessage({ sender: 'AI', text: data.next_question });
-                }
-            } else {
-                throw new Error(data.error || 'An unknown error occurred');
+            if (!response.ok) {
+                // This handles errors returned from our API route (e.g., if the AI response was bad)
+                throw new Error(data.error || 'The server returned an error.');
             }
+
+            if (data.feedback) {
+                addFeedbackToLastMessage(data.feedback);
+            }
+
+            if (data.next_question) {
+                addMessage({ sender: 'AI', text: data.next_question });
+            } else {
+                // If the AI decides the interview is over and provides no next question
+                addMessage({ sender: 'AI', text: "That was my final question. Thank you for your time. This was a great session!" });
+            }
+
         } catch (error) {
-            addMessage({ sender: 'AI', text: "I seem to be having some trouble connecting. Let's try that again." });
-            console.error(error);
+            // This catches network failures or issues with the fetch call itself
+            console.error("Failed to get response from interview API:", error);
+            const errorMessage = error instanceof Error ? error.message : "An unknown connection error occurred.";
+            // Provide a more specific error message to the user in the chat
+            addMessage({ sender: 'AI', text: `Sorry, I've encountered a technical issue: ${errorMessage} Please try rephrasing or try again shortly.` });
         } finally {
             setIsAwaitingResponse(false);
         }
@@ -85,8 +91,10 @@ export default function InterviewSessionPage() {
             {/* The chat container */}
             <div ref={chatContainerRef} className="flex-1 overflow-y-auto space-y-6 p-4 rounded-t-lg bg-gray-800/50 border-x border-t border-gray-700">
                 {messages.map((msg, index) => (
-                    <div key={index} className={`flex items-start gap-4 ${msg.sender === 'user' ? 'justify-end' : ''}`}>
-                        {msg.sender === 'AI' && <div className="w-10 h-10 bg-yellow-400/20 text-yellow-400 rounded-full flex items-center justify-center flex-shrink-0"><Bot/></div>}
+                    <div key={index} className={`flex items-start gap-4 ${msg.sender === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${msg.sender === 'AI' ? 'bg-yellow-400/20 text-yellow-400' : 'bg-gray-600 text-white'}`}>
+                            {msg.sender === 'AI' ? <Bot/> : <User/>}
+                        </div>
                         <div className={`max-w-lg p-4 rounded-xl ${msg.sender === 'AI' ? 'bg-gray-700 text-gray-200' : 'bg-blue-600 text-white'}`}>
                             <p className="whitespace-pre-wrap">{msg.text}</p>
                             {msg.feedback && (
@@ -95,7 +103,6 @@ export default function InterviewSessionPage() {
                                 </div>
                             )}
                         </div>
-                        {msg.sender === 'user' && <div className="w-10 h-10 bg-gray-600 rounded-full flex items-center justify-center flex-shrink-0"><User/></div>}
                     </div>
                 ))}
                 {isAwaitingResponse && (
@@ -108,7 +115,7 @@ export default function InterviewSessionPage() {
                 )}
             </div>
             {/* The input form */}
-            <div className="border border-gray-700 rounded-b-lg p-4 bg-gray-800">
+            <div className="border border-t-0 border-gray-700 rounded-b-lg p-4 bg-gray-800">
                 <div className="relative">
                     <textarea
                         value={userInput}
@@ -119,7 +126,7 @@ export default function InterviewSessionPage() {
                                 handleSubmitAnswer();
                             }
                         }}
-                        placeholder={isAwaitingResponse ? "Waiting for AI..." : "Type your answer here..."}
+                        placeholder={isAwaitingResponse ? "Waiting for AI's response..." : "Type your answer here..."}
                         className="w-full p-4 pr-20 bg-gray-700 text-gray-200 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 resize-none transition-colors"
                         rows={3}
                         disabled={isAwaitingResponse}

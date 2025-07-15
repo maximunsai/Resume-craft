@@ -1,59 +1,75 @@
-// src/app/api/interview/route.ts
+// src/app/api/interview/route.ts - THE ROBUST VERSION
 
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 
+// Initialize the client with the API key
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
-// This is the main "personality" of our interview agent.
-const SYSTEM_INSTRUCTION = `You are an expert AI interviewer named "Forge". You are conducting a mock interview for a user.
-1.  **Analyze the User's Resume Data**: Use their experience and skills to ask relevant behavioral and technical questions.
-2.  **Engage in a Conversational Flow**: Start with a greeting and a behavioral question. Gradually move to more technical or situational questions.
-3.  **Analyze the User's Answer**: After the user answers, provide brief, constructive feedback (1-2 sentences) on their answer. The feedback should focus on clarity, structure (like the STAR method), and relevance.
-4.  **Ask the Next Question**: After providing feedback, ask the next logical question in the interview sequence.
-5.  **Your Response MUST be a JSON object**: Your entire response must be a single, clean JSON object with two keys: "feedback" and "next_question". Do not include any other text or markdown.
+// Safety settings to prevent blocking legitimate content
+const safetySettings = [
+    { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+    { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+    { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+    { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+];
 
-Example response format:
-{
-  "feedback": "That's a solid example of teamwork. To make it stronger, you could quantify the result of your collaboration.",
-  "next_question": "Can you describe a time you had to deal with a difficult stakeholder?"
-}`;
+// Switch to the newest, most capable model available in the free tier. It's better at following complex instructions.
+const model = genAI.getGenerativeModel({ 
+    model: "gemini-1.5-flash-latest", 
+    safetySettings 
+});
+
 
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { resumeData, conversationHistory } = body;
+        // Provide default empty values to prevent errors if data is missing
+        const { resumeData = {}, conversationHistory = [] } = body;
 
-        // Format the conversation history for the AI
-        const formattedHistory = conversationHistory.map((msg: { sender: string; text: string; }) => `${msg.sender}: ${msg.text}`).join('\n');
+        // =================================================================
+        // THE FIX: A much stronger, more "bulletproof" system prompt.
+        // =================================================================
+        const system_instruction = `You are "Forge," an expert AI mock interviewer. Your personality is encouraging but professional.
+        Your task is to conduct a mock interview based on the provided user resume data and conversation history.
+
+        **YOUR STRICT RULES:**
+        1.  **ANALYZE CONTEXT**: Review the user's resume (experience, skills) and the entire conversation history to ask the most relevant, logical next question. Do not repeat questions. Start with behavioral questions and escalate to technical or situational questions if appropriate.
+        2.  **PROVIDE FEEDBACK**: After the user provides an answer (which is the last message in the history), give them one single, concise, and constructive sentence of feedback. Focus on whether they used the STAR method, quantified their results, or answered the question directly.
+        3.  **ASK THE NEXT QUESTION**: After the feedback, ask the next question.
+        4.  **JSON OUTPUT ONLY**: Your entire response MUST be a single, raw, valid JSON object. Do not include any text, introductions, or markdown like \`\`\`json. Your response must start with { and end with }.
+
+        **JSON FORMAT:**
+        {
+          "feedback": "Your concise feedback here.",
+          "next_question": "Your next question here."
+        }`;
 
         const prompt = `
-        ${SYSTEM_INSTRUCTION}
-        
-        ---
-        USER'S RESUME DATA:
-        ${JSON.stringify(resumeData)}
-        ---
-        CURRENT CONVERSATION:
-        ${formattedHistory}
-        ---
+            ${system_instruction}
 
-        Now, based on the last user answer, provide your feedback and the next question in the specified JSON format.
+            ---
+            **USER RESUME DATA:**
+            ${JSON.stringify(resumeData)}
+            ---
+            **CONVERSATION HISTORY (Last message is the user's latest answer):**
+            ${conversationHistory.map((msg: { sender: string; text: string; }) => `${msg.sender}: ${msg.text}`).join('\n')}
+            ---
         `;
 
         const result = await model.generateContent(prompt);
-        const response = result.response;
-        const text = response.text();
-
-        // Use our robust JSON parsing logic
-        const firstBrace = text.indexOf('{');
-        const lastBrace = text.lastIndexOf('}');
-        if (firstBrace === -1 || lastBrace === -1) {
-            throw new Error("AI response did not contain a valid JSON object.");
-        }
-        const jsonString = text.substring(firstBrace, lastBrace + 1);
+        const responseText = result.response.text();
         
+        // Use our robust JSON extraction logic
+        const firstBrace = responseText.indexOf('{');
+        const lastBrace = responseText.lastIndexOf('}');
+        
+        if (firstBrace === -1 || lastBrace === -1) {
+            console.error("AI response did not contain JSON:", responseText);
+            throw new Error("Received a non-JSON response from the AI.");
+        }
+        
+        const jsonString = responseText.substring(firstBrace, lastBrace + 1);
         const parsedResponse = JSON.parse(jsonString);
 
         return NextResponse.json(parsedResponse);
@@ -61,6 +77,7 @@ export async function POST(request: Request) {
     } catch (error) {
         console.error("Error in interview API route:", error);
         const errorMessage = error instanceof Error ? error.message : 'An internal server error occurred';
-        return NextResponse.json({ error: errorMessage }, { status: 500 });
+        // Return a more specific error to the client
+        return NextResponse.json({ error: errorMessage, details: 'The AI model failed to process the request.' }, { status: 500 });
     }
 }
