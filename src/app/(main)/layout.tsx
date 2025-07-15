@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import React from 'react';
 import { SignOutButton } from '@/components/SignOutButton'; 
+import { Link } from 'lucide-react';
 
 export default async function MainLayout({
   children,
@@ -26,6 +27,11 @@ export default async function MainLayout({
           {/* App Logo/Name */}
           <h1 className="font-poppins font-bold text-xl text-white">ResumeCraft</h1>
           
+          <nav className="flex items-center space-x-6">
+    <Link href="/builder" className="text-sm font-medium text-gray-300 hover:text-yellow-400">Resume Builder</Link>
+    <Link href="/interview" className="text-sm font-medium text-gray-300 hover:text-yellow-400">Mock Interview</Link>
+</nav>
+
           {/* User Info and Sign Out Button */}
           <div className="flex items-center space-x-4">
             <span className="text-sm text-gray-400 hidden sm:block">
