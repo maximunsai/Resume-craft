@@ -1,48 +1,79 @@
-// src/app/api/interview/route.ts - THE STREAMING ARCHITECTURE
+// Make sure you're in a Next.js 13+ app with App Router (Edge support)
 
+// 1. Import necessary packages
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Initialize the client (safety settings are not used in streaming calls this way)
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-const model = genAI.getGenerativeModel({ model: "gemini-pro" }); // Using gemini-pro for stability
-
-// This tells Next.js to handle this route as a streaming endpoint
+// 2. Enable Edge Runtime
 export const runtime = 'edge';
 
-export async function POST(request: Request) {
+// 3. Initialize Gemini Client
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+
+// 4. Export POST handler
+export async function POST(req: Request) {
   try {
-    const { resumeData = {}, conversationHistory = [] } = await request.json();
+    const { resumeData = {}, conversationHistory = [] } = await req.json();
 
-    const system_instruction = `You are "Forge," an expert AI mock interviewer. Your personality is encouraging but professional.
-    YOUR TASK:
-    1. ANALYZE CONTEXT: Review the user's resume and the entire conversation history to ask the most relevant, logical next question.
-    2. PROVIDE FEEDBACK & ASK QUESTION: First, provide one concise, constructive sentence of feedback. Then, ask the next question.
-    3. NATURAL RESPONSE: Respond as a human interviewer would. Do not use JSON. Just provide the feedback and question as a natural text response.`;
+    // Define system instruction
+    const systemInstruction = `
+You are "Forge," an expert AI mock interviewer. Be professional, supportive, and sharp. 
+Provide 1 line of feedback and ask 1 new relevant question. Focus on info from the resume and user's previous answers.
+Limit your response to under 80 words total.
+`;
 
-    const prompt = `${system_instruction}\n\n---\n**USER RESUME DATA:**\n${JSON.stringify(resumeData)}\n\n---\n**CONVERSATION HISTORY:**\n${conversationHistory.map((msg: { sender: string; text: string; }) => `${msg.sender}: ${msg.text}`).join('\n')}\n\n---\nForge:`;
+    // Format history
+    const formattedHistory = conversationHistory
+      .map((msg: { sender: string; text: string }) => `${msg.sender.toUpperCase()}: ${msg.text}`)
+      .join('\n');
 
-    // Get the streaming response from the AI
-    const result = await model.generateContentStream(prompt);
+    // Final prompt
+    const prompt = `
+${systemInstruction}
 
-    // Create a new, readable stream to send back to our client
+---
+USER'S RESUME:
+${JSON.stringify(resumeData, null, 2)}
+
+---
+CONVERSATION HISTORY:
+${formattedHistory}
+
+---
+FORGE’S NEXT RESPONSE:
+`;
+
+    // Generate stream using Gemini's SDK
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const responseStream = await model.generateContentStream({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    });
+
+    // Create a Text Stream readable by the browser
     const stream = new ReadableStream({
       async start(controller) {
-        for await (const chunk of result.stream) {
-          const chunkText = chunk.text();
-          // Encode the text chunk and send it to the client
-          controller.enqueue(new TextEncoder().encode(chunkText));
+        const encoder = new TextEncoder();
+        for await (const chunk of responseStream.stream) {
+          const text = chunk.text();
+          controller.enqueue(encoder.encode(text));
         }
-        // Close the stream when the AI is done
         controller.close();
       },
     });
 
-    // Return the stream as the response
-    return new Response(stream);
+    // Return the stream in the response
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'no-cache',
+        'Transfer-Encoding': 'chunked',
+      },
+    });
 
   } catch (error) {
-    console.error("Error in interview stream API route:", error);
-    // In case of an error, return a proper error response
-    return new Response("Sorry, an error occurred while processing your request.", { status: 500 });
+    console.error('[INTERVIEW_API_ERROR]', error);
+    return new Response(
+      JSON.stringify({ error: 'An error occurred while processing the interview.' }),
+      { status: 500 }
+    );
   }
 }
