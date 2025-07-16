@@ -1,5 +1,3 @@
-// src/app/(main)/interview/session/page.tsx - FINAL AND CORRECT
-
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -7,39 +5,33 @@ import { useResumeStore } from '@/store/resumeStore';
 import { useInterviewStore, Message } from '@/store/interviewStore';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
-import { VoiceSelectionMenu } from '@/components/VoiceSelectionMenu'; // <-- Import our new component
+import { VoiceSelectionMenu } from '@/components/VoiceSelectionMenu';
 import { Bot, User, Send, Mic, MicOff, Volume2, StopCircle } from 'lucide-react';
 
 export default function InterviewSessionPage() {
-    // --- State and Store Hooks ---
-    // The selectedVoice is now managed globally in the store
     const { messages, addMessage, startNewInterview, selectedVoice } = useInterviewStore();
     const resumeState = useResumeStore();
     const [isThinking, setIsThinking] = useState(false);
     const [userInput, setUserInput] = useState('');
     const chatContainerRef = useRef<HTMLDivElement>(null);
 
-    // --- Voice Hooks ---
     const { text: speechToText, interimText, isListening, startListening, stopListening, hasRecognitionSupport } = useSpeechRecognition();
     const { speak, cancel: cancelSpeech, isSpeaking, supported: ttsSupported } = useSpeechSynthesis();
 
-    // Effect to update text input from speech recognition
     useEffect(() => {
         if (speechToText) setUserInput(prev => (prev ? prev + ' ' : '').trim() + speechToText);
     }, [speechToText]);
 
     const displayedInput = isListening ? (userInput.endsWith(' ') ? userInput : userInput + ' ') + interimText : userInput;
 
-    // Effect to start the interview ONCE a default voice is selected
     useEffect(() => {
         if (messages.length === 0 && selectedVoice) {
-            const initialQuestion = `Hello, ${resumeState.personal.name || 'there'}. Thanks for your time. Welcome to the forge. To start, could you please walk me through your resume?`;
+            const initialQuestion = `Hello, ${resumeState.personal.name || 'there'}. Welcome to the forge. To start, could you please walk me through your resume?`;
             startNewInterview(initialQuestion);
             speak(initialQuestion, selectedVoice.voice);
         }
-    }, [selectedVoice]); // This now depends on selectedVoice
+    }, [messages.length, resumeState.personal.name, selectedVoice, speak, startNewInterview]);
 
-    // Effect to auto-scroll the chat
     useEffect(() => {
         if (chatContainerRef.current) {
             chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
@@ -94,7 +86,6 @@ export default function InterviewSessionPage() {
                 });
             }
 
-            // Speak the final response using the globally selected voice
             if (ttsSupported && selectedVoice) {
                 speak(fullResponseText, selectedVoice.voice);
             }
@@ -119,7 +110,6 @@ export default function InterviewSessionPage() {
         <div className="max-w-4xl mx-auto p-4 flex flex-col h-[calc(100vh-65px)]">
             <div className="flex justify-between items-center mb-4 flex-shrink-0">
                 <h1 className="text-2xl font-bold text-white">Mock Interview Session</h1>
-                {/* We simply drop our new component in here */}
                 <VoiceSelectionMenu />
             </div>
             
@@ -130,27 +120,53 @@ export default function InterviewSessionPage() {
                             {msg.sender === 'AI' ? <Bot/> : <User/>}
                         </div>
                         <div className={`max-w-xl p-4 rounded-xl shadow-md ${msg.sender === 'AI' ? 'bg-gray-700 text-gray-200' : 'bg-blue-600 text-white'}`}>
-                            {msg.sender === 'AI' && msg.text === '' && isThinking ? 
-                                <span className="italic text-gray-400 animate-pulse">Forge is thinking...</span> :
-                                <p className="whitespace-pre-wrap">{msg.text}</p>
-                            }
+                            <div className="flex items-center">
+                                {msg.sender === 'AI' && msg.text === '' && isThinking ? 
+                                    <span className="italic text-gray-400 animate-pulse">Forge is thinking...</span> :
+                                    <p className="whitespace-pre-wrap flex-1">{msg.text}</p>
+                                }
+                                {msg.sender === 'AI' && msg.text && ttsSupported && (
+                                   <button onClick={() => isSpeaking ? cancelSpeech() : speak(msg.text, selectedVoice?.voice)} className={`p-2 ml-3 rounded-full flex-shrink-0 self-center transition-colors ${isSpeaking ? 'bg-red-500/50 text-white' : 'bg-gray-600 text-gray-400 hover:text-white'}`}>
+                                       {isSpeaking ? <StopCircle size={16}/> : <Volume2 size={16}/>}
+                                   </button>
+                                )}
+                            </div>
                         </div>
-                        {msg.sender === 'AI' && msg.text && ttsSupported && (
-                           <button onClick={() => isSpeaking ? cancelSpeech() : speak(msg.text, selectedVoice?.voice)} className={`p-2 rounded-full flex-shrink-0 self-center transition-colors ${isSpeaking ? 'bg-red-500/50 text-white' : 'bg-gray-600 text-gray-400 hover:text-white'}`}>
-                               {isSpeaking ? <StopCircle size={16}/> : <Volume2 size={16}/>}
-                           </button>
-                        )}
                     </div>
                 ))}
             </div>
 
             <div className="flex-shrink-0 border border-t-0 border-gray-700 rounded-b-lg p-4 bg-gray-800">
-                {/* ... The input form JSX remains the same ... */}
                 <div className="relative">
-                     <textarea value={displayedInput} /* ... */ />
-                     <div className="absolute right-3 bottom-3 flex gap-2">
-                        {/* ... buttons ... */}
-                     </div>
+                    <textarea
+                        value={displayedInput}
+                        onChange={(e) => setUserInput(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmitAnswer(); } }}
+                        placeholder={isListening ? "Listening..." : (isThinking ? "Waiting for AI's response..." : "Type or speak your answer...")}
+                        className="w-full p-4 pr-28 bg-gray-700 text-gray-200 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 resize-none transition-colors"
+                        rows={3}
+                        disabled={isThinking}
+                    />
+                    <div className="absolute right-3 bottom-3 flex gap-2">
+                        {hasRecognitionSupport && (
+                             <button
+                                onClick={isListening ? stopListening : startListening}
+                                disabled={isThinking}
+                                className={`p-3 rounded-lg transition-colors ${isListening ? 'bg-red-600 text-white animate-pulse' : 'bg-gray-600 text-gray-300 hover:bg-gray-500'}`}
+                                aria-label={isListening ? 'Stop recording' : 'Start recording'}
+                             >
+                                 {isListening ? <MicOff size={20}/> : <Mic size={20}/>}
+                             </button>
+                        )}
+                        <button
+                            onClick={handleSubmitAnswer}
+                            disabled={!userInput.trim() || isThinking || isListening}
+                            className="p-3 bg-yellow-400 text-gray-900 rounded-lg disabled:bg-gray-600 disabled:cursor-not-allowed hover:bg-yellow-500"
+                            aria-label="Send message"
+                        >
+                            <Send size={20}/>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
