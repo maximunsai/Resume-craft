@@ -53,7 +53,7 @@ export default function InterviewLobbyPage() {
                 disabled={!canStartInterview}
                 className="px-12 py-4 bg-yellow-400 text-gray-900 font-bold rounded-lg text-xl disabled:bg-gray-600 disabled:cursor-not-allowed hover:bg-yellow-500 shadow-lg"
             >
-                Start Text-Based Interview
+                Start Mock Interview
             </button>
             
             {!canStartInterview && (
