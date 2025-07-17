@@ -1,45 +1,36 @@
-// src/app/api/analyze-interview/route.ts - THE ROBUST VERSION
+// src/app/api/analyze-interview/route.ts
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { NextResponse } from 'next/server';
+import { createRouteClient } from '@/lib/supabase/route-handler-client'; // <-- USE OUR NEW HELPER
 
-// Initialize the client with your API key
+export const dynamic = 'force-dynamic';
+
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-// Use a powerful model capable of nuanced analysis
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
 
 export async function POST(request: Request) {
+    // Authenticate the user first
+    const supabase = createRouteClient();
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session) {
+        return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
+    // Now proceed with the analysis logic
     try {
         const { transcript } = await request.json();
-
-        // Check if the transcript is empty or invalid
         if (!transcript || transcript.length === 0) {
-            return NextResponse.json({ error: "Transcript is empty or invalid." }, { status: 400 });
+            return NextResponse.json({ error: "Transcript is empty." }, { status: 400 });
         }
 
-        // A more detailed and explicit prompt for the final analysis
-        const prompt = `
-        You are an expert career coach AI named "Forge." Your task is to provide a final, overall performance analysis for a user based on the provided mock interview transcript.
-
-        **YOUR STRICT RULES:**
-        1.  **BE CONSTRUCTIVE:** Start with a positive reinforcement, then identify 1-2 key areas for improvement.
-        2.  **BE ACTIONABLE:** The feedback must be practical. Instead of saying "be more confident," say "To project more confidence, try structuring your answers using the STAR method to clearly showcase your achievements."
-        3.  **BE CONCISE:** The entire analysis should be a single paragraph of 3-5 sentences.
-        4.  **PLAIN TEXT ONLY:** Your response must be only the analysis text. Do not include any headers, markdown, or conversational filler like "Here is your analysis:".
-
-        ---
-        **INTERVIEW TRANSCRIPT TO ANALYZE:**
-        ${transcript.map((msg: {sender: string, text: string}) => `${msg.sender}: ${msg.text}`).join('\n')}
-        ---
-        
-        **YOUR CONCISE ANALYSIS:**`;
-
+        const prompt = `You are an expert career coach AI...`; // Your detailed prompt
         const result = await model.generateContent(prompt);
         const analysisText = result.response.text();
 
-        // Check if the AI returned a meaningful response
-        if (!analysisText || analysisText.trim().length < 10) {
-            throw new Error("AI failed to generate a meaningful analysis.");
+        if (!analysisText) {
+            throw new Error("AI failed to generate analysis.");
         }
 
         return NextResponse.json({ overall_feedback: analysisText });
