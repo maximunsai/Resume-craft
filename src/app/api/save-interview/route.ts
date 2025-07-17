@@ -1,18 +1,15 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
+// src/app/api/save-interview/route.ts - THE FINAL, CORRECTED VERSION
+
+import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
-// This is a special Next.js flag that ensures this route is always
-// treated as a dynamic function, which is necessary for it to access
-// real-time cookie information for authentication.
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
     try {
         const { transcript, overall_feedback } = await request.json();
         
-        // This is the correct, modern way to create a Supabase client
-        // inside a Next.js API Route when middleware is being used.
         const cookieStore = cookies();
         const supabase = createServerClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -26,15 +23,16 @@ export async function POST(request: Request) {
             }
         );
         
-        // Thanks to our middleware, this call will now reliably find the user's session.
         const { data: { session } } = await supabase.auth.getSession();
 
-        // If for any reason there is no session, we deny access.
         if (!session) {
             return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
         }
 
-        // Insert the interview data into our database, associating it with the user.
+        // =================================================================
+        // THE DEFINITIVE FIX IS HERE: Change .select('id') to .select()
+        // By default, .select() is the same as .select('*'), which is more robust.
+        // =================================================================
         const { data, error } = await supabase
             .from('interviews')
             .insert({ 
@@ -42,16 +40,19 @@ export async function POST(request: Request) {
                 transcript: transcript,
                 overall_feedback: overall_feedback
             })
-            .select('id') // We only need to return the ID of the new row.
+            .select() // This now selects all columns from the newly created row.
             .single();
 
-        // If there was a database error, report it.
         if (error) {
             console.error("Error saving interview to Supabase:", error.message);
             throw new Error(`Database error: ${error.message}`);
         }
 
-        // On success, return the ID of the newly created interview record.
+        if (!data || !data.id) {
+             throw new Error("Database insert succeeded but returned no data.");
+        }
+
+        // Now we can safely return the ID from the full data object.
         return NextResponse.json({ interview_id: data.id });
 
     } catch (error) {
