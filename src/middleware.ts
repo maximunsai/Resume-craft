@@ -1,12 +1,9 @@
-// src/middleware.ts - FINAL FIX
+// src/middleware.ts
 
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  // This comment tells the linter to ignore the "prefer-const" error for the next line.
-  // We need `let` here because the `response` object is reassigned inside the `setAll` callback.
-  // eslint-disable-next-line prefer-const
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -18,29 +15,39 @@ export async function middleware(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return request.cookies.getAll()
+        get(name: string) {
+          return request.cookies.get(name)?.value
         },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => 
-            request.cookies.set(name, value)
-          );
+        set(name: string, value: string, options: CookieOptions) {
+          request.cookies.set({ name, value, ...options })
           response = NextResponse.next({
-            request,
-          });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          );
+            request: {
+              headers: request.headers,
+            },
+          })
+          response.cookies.set({ name, value, ...options })
+        },
+        remove(name: string, options: CookieOptions) {
+          request.cookies.set({ name, value: '', ...options })
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          })
+          response.cookies.set({ name, value: '', ...options })
         },
       },
     }
   )
 
+  // This line is the magic. It refreshes the user's session cookie
+  // on the server-side before handling the request.
   await supabase.auth.getUser()
 
   return response
 }
 
+// Ensure the middleware runs on all paths except for static assets.
 export const config = {
   matcher: [
     /*
@@ -48,8 +55,7 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - api (API routes)
      */
-    '/((?!_next/static|_next/image|favicon.ico|api/).*)',
+    '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 }
