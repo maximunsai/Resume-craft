@@ -15,6 +15,8 @@ export interface AppVoice {
     lang: string;
 }
 
+export type InterviewStage = 'Behavioral' | 'Technical' | 'Situational';
+
 interface InterviewState {
     messages: Message[];
     isAwaitingResponse: boolean;
@@ -24,6 +26,8 @@ interface InterviewState {
     setIsAwaitingResponse: (isLoading: boolean) => void;
     addFeedbackToLastMessage: (feedback: string) => void;
     setSelectedVoice: (voice: AppVoice | null) => void; // <-- NEW: Setter function
+    stage: InterviewStage; // <-- NEW: To track the current stage
+    setStage: (stage: InterviewStage) => void; // <-- NEW: Setter function
 }
 
 export const useInterviewStore = create<InterviewState>((set) => ({
@@ -31,9 +35,13 @@ export const useInterviewStore = create<InterviewState>((set) => ({
     isAwaitingResponse: false,
     selectedVoice: null, // <-- NEW: Initialize as null
     addMessage: (message) => set((state) => ({ messages: [...state.messages, message] })),
+
+    stage: 'Behavioral', // <-- NEW: The interview always starts at the Behavioral stage
+    setStage: (stage) => set({ stage }), // <-- NEW: Implementation
     startNewInterview: (initialQuestion) => set({
         messages: [{ sender: 'AI', text: initialQuestion }],
         isAwaitingResponse: false,
+        stage: 'Behavioral', // Reset stage to Behavioral on new interview
     }),
     setIsAwaitingResponse: (isLoading) => set({ isAwaitingResponse: isLoading }),
     addFeedbackToLastMessage: (feedback) => {
