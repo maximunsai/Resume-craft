@@ -1,13 +1,11 @@
-// src/hooks/useSpeechSynthesis.ts - THE UNIFIED, FINAL VERSION
+// src/hooks/useSpeechSynthesis.ts - DEFINITIVE VERSION
 
 'use client';
-
 import { useState, useCallback, useEffect, useRef } from 'react';
-// THE HOOK NOW ACCESSES THE STORE DIRECTLY TO GET THE USER'S PREFERENCES
-import { useInterviewStore } from '@/store/interviewStore'; 
+import { useInterviewStore } from '@/store/interviewStore';
 
 interface SpeechHook {
-    speak: (text: string) => void; // The component ONLY needs to provide the text
+    speak: (text: string) => void;
     cancel: () => void;
     isLoading: boolean;
     isSpeaking: boolean;
@@ -20,7 +18,6 @@ if (typeof window !== 'undefined') {
 }
 
 export const useSpeechSynthesis = (): SpeechHook => {
-    // This hook subscribes to the store to get the user's voice preferences
     const { selectedPersonaId, selectedVoice } = useInterviewStore(state => ({
         selectedPersonaId: state.selectedPersonaId,
         selectedVoice: state.selectedVoice,
@@ -29,14 +26,12 @@ export const useSpeechSynthesis = (): SpeechHook => {
     const [isLoading, setIsLoading] = useState(false);
     const [isSpeaking, setIsSpeaking] = useState(false);
 
-    // Effect to set up event listeners for the audio element
     useEffect(() => {
         const audio = premiumAudio;
         if (!audio) return;
 
         const handlePlay = () => setIsSpeaking(true);
         const handlePauseOrEnd = () => setIsSpeaking(false);
-
         audio.addEventListener('play', handlePlay);
         audio.addEventListener('pause', handlePauseOrEnd);
         audio.addEventListener('ended', handlePauseOrEnd);
@@ -48,17 +43,16 @@ export const useSpeechSynthesis = (): SpeechHook => {
         };
     }, []);
     
-    // The main 'speak' function. Its logic is now entirely self-contained.
     const speak = useCallback(async (text: string) => {
         if (!text || isSpeaking || isLoading) return;
 
-        // Ensure any previous audio is stopped before starting new audio
         if (premiumAudio) premiumAudio.pause();
         window.speechSynthesis.cancel();
         
-        // --- Try Premium API First ---
+        setIsLoading(true);
+        setIsSpeaking(false); // Reset speaking state
+
         if (selectedPersonaId) {
-            setIsLoading(true);
             try {
                 const response = await fetch('/api/tts', {
                     method: 'POST',
@@ -66,7 +60,10 @@ export const useSpeechSynthesis = (): SpeechHook => {
                     body: JSON.stringify({ text, personaId: selectedPersonaId }),
                 });
 
-                if (!response.ok) throw new Error("ElevenLabs API request failed");
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || "API request failed");
+                }
                 
                 const blob = await response.blob();
                 const url = URL.createObjectURL(blob);
@@ -75,17 +72,26 @@ export const useSpeechSynthesis = (): SpeechHook => {
                     premiumAudio.src = url;
                     await premiumAudio.play();
                 }
-                setIsLoading(false);
-                return; // Success! Exit the function.
+                // setLoading is handled by the 'play' and 'ended' events now
 
             } catch (error)  {
-                console.warn(`Premium TTS failed for persona '${selectedPersonaId}': ${(error as Error).message}. Falling back to native browser voice.`);
-                // If premium fails, we intentionally fall through to the native voice logic below.
+                console.warn(`Premium TTS failed: ${(error as Error).message}. Falling back to native voice.`);
+                fallbackToNative(text);
+            } finally {
+                // ==========================================================
+                // THE FIX IS HERE: Ensure isLoading is always set to false
+                // if the premium audio process completes or fails.
+                // ==========================================================
+                setIsLoading(false);
             }
+        } else {
+            fallbackToNative(text);
         }
-        
-        // --- Fallback to Native Browser Voice ---
-        setIsLoading(false); // No loading for native voice
+    }, [isSpeaking, isLoading, selectedPersonaId, selectedVoice]);
+    
+    // Helper function for the native fallback voice
+    const fallbackToNative = (text: string) => {
+        setIsLoading(false); // Make sure loading is off for native
         if ('speechSynthesis' in window && selectedVoice) {
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.voice = selectedVoice.voice;
@@ -94,10 +100,8 @@ export const useSpeechSynthesis = (): SpeechHook => {
             utterance.onend = () => setIsSpeaking(false);
             utterance.onerror = () => setIsSpeaking(false);
             window.speechSynthesis.speak(utterance);
-        } else {
-            console.error("Speech synthesis not supported or no native voice selected.");
         }
-    }, [isSpeaking, isLoading, selectedPersonaId, selectedVoice]);
+    };
 
     const cancel = useCallback(() => {
         if (premiumAudio) {
