@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useInterviewStore } from '@/store/interviewStore';
+import { useState, useCallback, useEffect, useRef } from 'react';
 
-// The hook's public interface remains the same, so no frontend changes are needed.
+// The public interface of our hook. This MUST match what the component expects.
 interface SpeechHook {
     speak: (text: string, personaId: string) => void;
     cancel: () => void;
@@ -11,64 +10,50 @@ interface SpeechHook {
     isSpeaking: boolean;
 }
 
-// A single, global audio element is the most robust way to handle this.
+// A single, global audio element is the most robust way to handle playback.
 let audio: HTMLAudioElement | null = null;
 if (typeof window !== 'undefined') {
     audio = new Audio();
 }
 
 export const useSpeechSynthesis = (): SpeechHook => {
-    // We get the native voice from the store purely for the fallback.
-    const { selectedVoice } = useInterviewStore(state => ({ selectedVoice: state.selectedVoice }));
-    
     const [isLoading, setIsLoading] = useState(false);
     const [isSpeaking, setIsSpeaking] = useState(false);
 
-    // This effect is the "state machine." It listens to the audio element's
-    // own events to reliably determine if audio is playing or not.
-    // This is the most important part of the fix.
+    // This effect manages the isSpeaking state reliably via the audio element's own events.
     useEffect(() => {
         if (!audio) return;
         const handlePlay = () => setIsSpeaking(true);
-        const handlePauseOrEnd = () => setIsSpeaking(false);
-
+        const handleEnd = () => setIsSpeaking(false);
         audio.addEventListener('play', handlePlay);
-        audio.addEventListener('pause', handlePauseOrEnd);
-        audio.addEventListener('ended', handlePauseOrEnd);
-        audio.addEventListener('error', handlePauseOrEnd); // Also stop on any playback error
-
-        // Cleanup function to prevent memory leaks
+        audio.addEventListener('pause', handleEnd);
+        audio.addEventListener('ended', handleEnd);
+        audio.addEventListener('error', (e) => {
+            console.error("HTMLAudioElement error:", e);
+            handleEnd();
+        });
         return () => {
             audio.removeEventListener('play', handlePlay);
-            audio.removeEventListener('pause', handlePauseOrEnd);
-            audio.removeEventListener('ended', handlePauseOrEnd);
-            audio.removeEventListener('error', handlePauseOrEnd);
+            audio.removeEventListener('pause', handleEnd);
+            audio.removeEventListener('ended', handleEnd);
+            audio.removeEventListener('error', handleEnd);
         };
     }, []);
 
-    // This is the native browser voice fallback function.
-    const fallbackToNative = useCallback((text: string) => {
-        setIsLoading(false); // Ensure loading is off for the fallback
-        if ('speechSynthesis' in window && selectedVoice) {
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.voice = selectedVoice.voice;
-            utterance.rate = 0.9;
-            // The utterance itself has events to manage the isSpeaking state
-            utterance.onstart = () => setIsSpeaking(true);
-            utterance.onend = () => setIsSpeaking(false);
-            utterance.onerror = () => setIsSpeaking(false);
-            window.speechSynthesis.speak(utterance);
+    const cancel = useCallback(() => {
+        if (audio) {
+            audio.pause();
+            audio.src = '';
         }
-    }, [selectedVoice]);
+        setIsLoading(false);
+        setIsSpeaking(false);
+    }, []);
 
-    // The main function called by our application.
+    // This is the main function called by the component.
     const speak = useCallback(async (text: string, personaId: string) => {
-        if (!text || !personaId || isSpeaking || isLoading) return;
-
-        // Ensure any previous audio (premium or native) is stopped.
-        if (audio) audio.pause();
-        window.speechSynthesis.cancel();
+        if (isLoading || isSpeaking) return;
         
+        cancel(); // Cancel any previous audio first
         setIsLoading(true);
 
         try {
@@ -80,7 +65,7 @@ export const useSpeechSynthesis = (): SpeechHook => {
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || `API request failed with status ${response.status}`);
+                throw new Error(errorData.error || `API Error: Status ${response.status}`);
             }
             
             const blob = await response.blob();
@@ -88,39 +73,28 @@ export const useSpeechSynthesis = (): SpeechHook => {
 
             if (audio) {
                 audio.src = url;
-                // ==========================================================
-                // THE CRITICAL FIX: We do NOT `await` play().
-                // We fire it and immediately move on. The event listeners
-                // will handle setting `isSpeaking` to true when it starts.
-                // We add a `.catch()` to handle browser autoplay blocks.
-                // ==========================================================
+                // This is a fire-and-forget play call. Event listeners handle state.
                 audio.play().catch(err => {
                     console.error("Browser blocked audio playback:", err);
-                    alert("Your browser blocked audio playback. Please click the speaker icon again to play the message.");
-                    // Reset state if play is blocked by the browser
+                    alert("Your browser may be blocking audio playback. Please click the speaker icon again to play.");
+                    // Reset state if the browser blocks playback
                     setIsLoading(false);
                     setIsSpeaking(false);
                 });
             }
         } catch (error) {
-            console.warn(`Premium TTS failed: ${(error as Error).message}. Falling back to native voice.`);
-            fallbackToNative(text);
+            console.error(`Failed to play audio for persona "${personaId}":`, error);
+            alert(`Voice Generation Failed: ${(error as Error).message}`);
+            // Ensure state is always reset on ANY failure
+            setIsLoading(false);
+            setIsSpeaking(false);
         } finally {
-            // This is the other critical fix: isLoading is set to false as soon
-            // as the fetch is complete, not after the audio finishes playing.
+            // This ensures the loading spinner for the network request ALWAYS stops
             setIsLoading(false);
         }
-    }, [isSpeaking, isLoading, selectedVoice, fallbackToNative]);
+    }, [isLoading, isSpeaking, cancel]);
 
-    const cancel = useCallback(() => {
-        if (audio) {
-            audio.pause();
-            audio.src = '';
-        }
-        window.speechSynthesis.cancel();
-        setIsSpeaking(false);
-        setIsLoading(false);
-    }, []);
 
+    // Return the correctly named functions that the component expects.
     return { speak, cancel, isLoading, isSpeaking };
 };
