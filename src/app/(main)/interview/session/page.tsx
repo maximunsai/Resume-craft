@@ -11,7 +11,7 @@ import { Bot, User, Send, Mic, MicOff, Volume2, StopCircle, Flag } from 'lucide-
 
 export default function InterviewSessionPage() {
     // --- Store and State Hooks ---
-    const { messages, addMessage, startNewInterview } = useInterviewStore();
+    const { messages, addMessage, startNewInterview, selectedPersonaId } = useInterviewStore();
     const resumeState = useResumeStore();
     const [isThinking, setIsThinking] = useState(false);
     const [userInput, setUserInput] = useState('');
@@ -20,7 +20,7 @@ export default function InterviewSessionPage() {
 
     // --- Voice Hooks ---
     const { text: speechToText, interimText, isListening, startListening, stopListening, hasRecognitionSupport } = useSpeechRecognition();
-    const { speak, cancel: cancelSpeech, isLoading: isAudioLoading, isSpeaking } = useSpeechSynthesis();
+    const { playAudio, cancelAudio, isLoading: isAudioLoading, isSpeaking } = useSpeechSynthesis();
 
     // --- Effects ---
     useEffect(() => {
@@ -28,19 +28,21 @@ export default function InterviewSessionPage() {
     }, [speechToText]);
 
     const displayedInput = isListening ? (userInput.endsWith(' ') ? userInput : userInput + ' ') + interimText : userInput;
-
+    
+    // This effect now triggers the first message creation, and another effect will handle speaking it.
     useEffect(() => {
         if (messages.length === 0) {
             startNewInterview(`Hello, ${resumeState.personal.name || 'there'}. Welcome to the forge. To start, could you please walk me through your resume?`);
         }
     }, [messages.length, resumeState.personal.name, startNewInterview]);
 
+    // This effect is now dedicated to speaking the latest AI message.
     useEffect(() => {
         const lastMessage = messages[messages.length - 1];
-        if (lastMessage && lastMessage.sender === 'AI' && lastMessage.text) {
-            speak(lastMessage.text);
+        if (lastMessage && lastMessage.sender === 'AI' && lastMessage.text && selectedPersonaId) {
+            playAudio(lastMessage.text, selectedPersonaId);
         }
-    }, [messages, speak]);
+    }, [messages, selectedPersonaId, playAudio]);
 
     useEffect(() => {
         if (chatContainerRef.current) chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
@@ -51,7 +53,7 @@ export default function InterviewSessionPage() {
         const currentInput = displayedInput.trim();
         if (!currentInput || isThinking) return;
 
-        cancelSpeech();
+        cancelAudio();
         if (isListening) stopListening();
 
         const userMessage: Message = { sender: 'user', text: currentInput };
@@ -74,7 +76,7 @@ export default function InterviewSessionPage() {
 
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
-
+            
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
@@ -90,17 +92,53 @@ export default function InterviewSessionPage() {
                 });
             }
         } catch (error) {
-            // ... (error handling)
+            console.error("API stream failed:", error);
+            useInterviewStore.setState(state => {
+                const lastMessage = state.messages[state.messages.length - 1];
+                if (lastMessage?.sender === 'AI') {
+                    lastMessage.text = "Sorry, I encountered a connection issue. Please try again.";
+                }
+                return { messages: [...state.messages] };
+            });
         } finally {
             setIsThinking(false);
         }
     };
+    
+    const handleFinishInterview = async () => {
+        if (isThinking) return;
+        
+        setIsThinking(true);
+        
+        try {
+            const analysisResponse = await fetch('/api/analyze-interview', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ transcript: messages })
+            });
+            const analysisData = await analysisResponse.json();
+            if (!analysisResponse.ok) throw new Error(analysisData.error || "Failed to generate analysis.");
 
-    const handleFinishInterview = async () => { /* ... Your working function ... */ };
+            const saveResponse = await fetch('/api/save-interview', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    transcript: messages, 
+                    overall_feedback: analysisData.overall_feedback 
+                })
+            });
+            const saveData = await saveResponse.json();
+            if (!saveResponse.ok) throw new Error(saveData.error || "Failed to save interview.");
+            
+            router.push(`/interview/analytics/${saveData.interview_id}`);
 
-    // =================================================================
-    // THE DEFINITIVE UI FIX IS HERE
-    // =================================================================
+        } catch (error) {
+            alert(`Failed to finish interview: ${(error as Error).message}`);
+            setIsThinking(false);
+        }
+     };
+
+    // --- JSX ---
     return (
         <div className="max-w-4xl mx-auto p-4 flex flex-col h-[calc(100vh-65px)]">
             {/* Header section with Title and Buttons */}
@@ -133,9 +171,9 @@ export default function InterviewSessionPage() {
                                         ? <span className="italic text-gray-400 animate-pulse">Forge is thinking...</span>
                                         : msg.text}
                                 </p>
-                                {msg.sender === 'AI' && msg.text && (
+                                {msg.sender === 'AI' && msg.text && selectedPersonaId && (
                                     <button
-                                        onClick={() => isSpeaking ? cancelSpeech() : speak(msg.text)}
+                                        onClick={() => isSpeaking ? cancelAudio() : playAudio(msg.text, selectedPersonaId)}
                                         disabled={isAudioLoading}
                                         className={`p-2 ml-3 rounded-full flex-shrink-0 self-center transition-colors ${isSpeaking ? 'bg-red-500/50 text-white' : 'bg-gray-600 text-gray-400 hover:text-white'}`}
                                     >

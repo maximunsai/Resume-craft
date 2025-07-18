@@ -1,78 +1,97 @@
-// src/hooks/useSpeechSynthesis.ts - THE FINAL VERSION
-
 'use client';
-import { useState, useCallback } from 'react';
-import { useInterviewStore } from '@/store/interviewStore';
-import { useAudioPlayer } from './useAudioPlayer'; // <-- Import our new hook
 
+import { useState, useCallback, useEffect, useRef } from 'react';
+
+// Define the hook's return type for clarity
 interface SpeechHook {
-    speak: (text: string) => void;
-    cancel: () => void;
+    playAudio: (text: string, personaId: string) => void;
+    cancelAudio: () => void;
     isLoading: boolean;
     isSpeaking: boolean;
 }
 
+// Create one global audio element to prevent conflicts
+let audio: HTMLAudioElement | null = null;
+if (typeof window !== 'undefined') {
+    audio = new Audio();
+}
+
 export const useSpeechSynthesis = (): SpeechHook => {
-    const { selectedPersonaId, selectedVoice } = useInterviewStore(state => ({
-        selectedPersonaId: state.selectedPersonaId,
-        selectedVoice: state.selectedVoice,
-    }));
-
     const [isLoading, setIsLoading] = useState(false);
-    // The audio player now manages its own isPlaying state
-    const { playUrl: playPremiumAudio, cancel: cancelPremiumAudio, isPlaying: isSpeaking } = useAudioPlayer();
+    const [isSpeaking, setIsSpeaking] = useState(false);
 
-    // The native fallback does not use the audio player
-    const fallbackToNative = useCallback((text: string) => {
-        if ('speechSynthesis' in window && selectedVoice) {
-            window.speechSynthesis.cancel(); // Cancel any lingering speech
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.voice = selectedVoice.voice;
-            utterance.rate = 0.9;
-            // We can manage a separate speaking state for this if needed, but it's often not necessary
-            window.speechSynthesis.speak(utterance);
+    // This effect manages the isSpeaking state based on the audio element's events.
+    useEffect(() => {
+        if (!audio) return;
+        const handlePlay = () => setIsSpeaking(true);
+        const handleEnd = () => setIsSpeaking(false);
+        audio.addEventListener('play', handlePlay);
+        audio.addEventListener('pause', handleEnd);
+        audio.addEventListener('ended', handleEnd);
+        audio.addEventListener('error', handleEnd);
+        return () => {
+            audio.removeEventListener('play', handlePlay);
+            audio.removeEventListener('pause', handleEnd);
+            audio.removeEventListener('ended', handleEnd);
+            audio.removeEventListener('error', handleEnd);
+        };
+    }, []);
+
+    const cancelAudio = useCallback(() => {
+        if (audio) {
+            audio.pause();
+            audio.src = '';
         }
-    }, [selectedVoice]);
+        setIsLoading(false);
+        setIsSpeaking(false);
+    }, []);
 
-    const speak = useCallback(async (text: string) => {
-        if (!text || isSpeaking || isLoading) return;
+    const playAudio = useCallback(async (text: string, personaId: string) => {
+        // Prevent new audio from starting if something is already happening
+        if (isLoading || isSpeaking) {
+            return;
+        }
 
-        cancelPremiumAudio();
-        window.speechSynthesis.cancel();
-        
-        if (selectedPersonaId) {
-            setIsLoading(true);
-            try {
-                const response = await fetch('/api/tts', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text, personaId: selectedPersonaId }),
-                });
+        setIsLoading(true);
 
-                if (!response.ok) throw new Error("API request failed");
-                
-                const blob = await response.blob();
-                const url = URL.createObjectURL(blob);
-                
-                // Hand off the URL to our reliable player
-                playPremiumAudio(url);
-                
-            } catch (error)  {
-                console.warn(`Premium TTS failed: ${(error as Error).message}. Falling back.`);
-                fallbackToNative(text);
-            } finally {
-                setIsLoading(false);
+        try {
+            const response = await fetch('/api/tts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text, personaId }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `API request failed with status ${response.status}`);
             }
-        } else {
-            // If no premium voice is selected, go straight to fallback
-            fallbackToNative(text);
+            
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+
+            if (audio) {
+                audio.src = url;
+                // Don't await this. Let the event listeners handle state.
+                audio.play().catch(err => {
+                    // This catch is crucial for autoplay policy errors
+                    console.error("Audio playback error:", err);
+                    // Reset state if play is blocked
+                    setIsLoading(false);
+                    setIsSpeaking(false);
+                    alert("Browser blocked audio playback. Please click the speaker icon to play.");
+                });
+            }
+        } catch (error) {
+            console.error(`Premium TTS failed: ${(error as Error).message}.`);
+            // Show an alert so the user knows exactly what failed
+            alert(`Failed to generate audio: ${(error as Error).message}`);
+        } finally {
+            // This is the key: setIsLoading is called right after the fetch is done,
+            // not after the audio finishes playing.
+            setIsLoading(false);
         }
-    }, [isSpeaking, isLoading, selectedPersonaId, playPremiumAudio, fallbackToNative, cancelPremiumAudio]);
+    }, [isLoading, isSpeaking]);
 
-    const cancel = useCallback(() => {
-        cancelPremiumAudio();
-        window.speechSynthesis.cancel();
-    }, [cancelPremiumAudio]);
 
-    return { speak, cancel, isLoading, isSpeaking };
+    return { playAudio, cancelAudio, isLoading, isSpeaking };
 };
