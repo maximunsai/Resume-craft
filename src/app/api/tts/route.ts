@@ -1,22 +1,27 @@
 // src/app/api/tts/route.ts
 
+import { VOICE_MANIFEST } from '@/lib/voice-manifest';
 import { NextResponse } from 'next/server';
 
-export const dynamic = 'force-dynamic'; // Ensures this is not cached
+export const dynamic = 'force-dynamic';
 
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
-// You can find Voice IDs in the "Voice Lab" on ElevenLabs' website.
-// 'Rachel' is a popular, professional female voice.
-const VOICE_ID = '2zRM7PkgwBPiau2jvVXc'; 
 
 export async function POST(request: Request) {
-    const { text } = await request.json();
+    const { text, personaId } = await request.json();
 
-    if (!text || !ELEVENLABS_API_KEY) {
-        return NextResponse.json({ error: 'Missing text or API key' }, { status: 400 });
+    if (!text || !personaId || !ELEVENLABS_API_KEY) {
+        return NextResponse.json({ error: 'Missing text, personaId, or API key' }, { status: 400 });
     }
 
-    const elevenLabsUrl = `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}/stream`;
+    // Look up the actual ElevenLabs Voice ID from our secure manifest
+    const selectedPersona = VOICE_MANIFEST.find(p => p.personaId === personaId);
+
+    if (!selectedPersona) {
+        return NextResponse.json({ error: 'Invalid personaId' }, { status: 400 });
+    }
+
+    const elevenLabsUrl = `https://api.elevenlabs.io/v1/text-to-speech/${selectedPersona.elevenLabsVoiceId}/stream`;
 
     try {
         const response = await fetch(elevenLabsUrl, {
@@ -27,28 +32,20 @@ export async function POST(request: Request) {
             },
             body: JSON.stringify({
                 text: text,
-                model_id: 'eleven_multilingual_v2', // A high-quality model
-                voice_settings: {
-                    stability: 0.5,
-                    similarity_boost: 0.75,
-                },
+                model_id: 'eleven_multilingual_v2',
+                voice_settings: { stability: 0.5, similarity_boost: 0.75 },
             }),
         });
 
         if (!response.ok || !response.body) {
             const errorBody = await response.text();
-            console.error("ElevenLabs API Error:", errorBody);
-            throw new Error(`ElevenLabs API responded with status ${response.status}`);
+            throw new Error(`ElevenLabs API Error: ${errorBody}`);
         }
 
-        // Return the audio stream directly to the client
-        return new NextResponse(response.body, {
-            headers: { 'Content-Type': 'audio/mpeg' },
-        });
+        return new NextResponse(response.body, { headers: { 'Content-Type': 'audio/mpeg' } });
 
     } catch (error) {
         console.error("Error in TTS route:", error);
-        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
-        return NextResponse.json({ error: errorMessage }, { status: 500 });
+        return NextResponse.json({ error: (error as Error).message }, { status: 500 });
     }
 }
