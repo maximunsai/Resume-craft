@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'; // Ensures this is not cached
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
 // You can find Voice IDs in the "Voice Lab" on ElevenLabs' website.
 // 'Rachel' is a popular, professional female voice.
-const VOICE_ID = '21m00Tcm4TlvDq8ikWAM'; 
+const VOICE_ID = '2zRM7PkgwBPiau2jvVXc'; 
 
 export async function POST(request: Request) {
     const { text } = await request.json();
