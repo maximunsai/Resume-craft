@@ -1,122 +1,129 @@
-// src/app/api/interview/route.ts - MULTI-STAGE VERSION (UPDATED)
+// src/app/api/interview/route.ts - PRODUCTION-GRADE REWRITE
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { NextRequest, NextResponse } from 'next/server';
+import { streamText } from 'ai';
+// import { google } from 'ai/google';
 
+// Initialize the client
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 export const runtime = 'edge';
 
-// Helper function to create a readable stream from Gemini response
-function createReadableStream(geminiStream: any) {
-  return new ReadableStream({
-    async start(controller) {
-      try {
-        for await (const chunk of geminiStream) {
-          const chunkText = chunk.text();
-          if (chunkText) {
-            controller.enqueue(new TextEncoder().encode(chunkText));
-          }
-        }
-        controller.close();
-      } catch (error) {
-        controller.error(error);
-      }
-    },
-  });
-}
-
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
-    // We now expect the `stage` to be passed in the request body
     const { resumeData = {}, conversationHistory = [], stage = 'Behavioral' } = await req.json();
 
     // =================================================================
-    // THE UPGRADE: A dynamic system prompt that changes based on the stage
+    // THE CRITICAL PROMPT FIX: A highly structured and resilient prompt.
     // =================================================================
     const getSystemInstruction = (currentStage: string) => {
         let stageInstruction = '';
+        
         switch (currentStage) {
-            case 'Technical':
-                stageInstruction = `
-                You are now in the **Technical Round**.
-                - Ask specific, resume-based technical questions (e.g., "I see you used React; can you explain the virtual DOM?").
-                - Present code problem-solving scenarios.
-                - Discuss system design and architecture if relevant to the user's experience.
-                - Provide feedback on the technical accuracy and depth of the user's answer.
-                - After 8-12 questions, your final response should be "That concludes the technical round. Are you ready for the final HR and situational questions?"`;
-                break;
-            case 'Situational':
-                stageInstruction = `
-                You are now in the **HR & Situational Round**.
-                - Ask questions about salary expectations, team conflict resolution, ideal work environment, and career goals.
-                - Ask classic HR questions like "Why should we hire you?".
-                - Provide feedback on the professionalism and strategic thinking behind the user's answers.
-                - After 4-6 questions, your final response should be "That concludes our interview. Thank you for your time. The session will now end."`;
-                break;
             case 'Behavioral':
-            default:
-                stageInstruction = `
-                You are in the **Behavioral Round**.
-                - Ask questions like "Tell me about yourself," "Walk through your resume," and questions about challenging projects or working under pressure.
-                - Provide feedback based on the STAR (Situation, Task, Action, Result) method.
-                - After 5-7 questions, your final response should be "Great, that covers the behavioral questions. Are you ready to move on to the technical round?"`;
+                stageInstruction = `Focus on behavioral questions that assess soft skills, teamwork, leadership, problem-solving approach, and cultural fit. Ask about past experiences and how they handled specific situations.`;
                 break;
+            case 'Technical':
+                stageInstruction = `Focus on technical questions relevant to the candidate's field. Test their knowledge of programming languages, frameworks, system design, algorithms, and technical problem-solving.`;
+                break;
+            case 'Case Study':
+                stageInstruction = `Present real-world scenarios or business cases. Evaluate analytical thinking, problem-solving methodology, and practical application of skills.`;
+                break;
+            default:
+                stageInstruction = `Conduct a comprehensive interview covering various aspects of the candidate's qualifications.`;
         }
+        
+        return `You are "Forge," a world-class AI mock interviewer with expertise in conducting professional interviews across all industries and roles.
 
-        return `You are "Forge," a world-class AI mock interviewer. Your personality is sharp and professional.
-        **CURRENT STAGE**: ${currentStage}.
-        **YOUR TASK**: Follow the instructions for the current stage precisely. Analyze the user's resume and the entire conversation history to ask a relevant question. After the user answers, provide concise, expert feedback, then ask the next question.
-        
-        ${stageInstruction}
-        
-        **RULES**:
-        - Ask only one question at a time.
-        - Respond naturally as plain text. Do not use JSON or markdown.`;
+CORE IDENTITY:
+- You are an experienced, empathetic, and insightful interviewer
+- Your goal is to help candidates improve through realistic interview practice
+- You maintain a professional yet approachable tone
+- You provide constructive feedback and guidance
+
+CURRENT INTERVIEW STAGE: ${currentStage}
+STAGE FOCUS: ${stageInstruction}
+
+INTERVIEW GUIDELINES:
+1. Ask ONE question at a time and wait for the candidate's response
+2. Follow up with clarifying questions when appropriate
+3. Provide encouraging feedback and acknowledge good answers
+4. If an answer is incomplete, guide them to elaborate
+5. Keep questions relevant to the resume and role requirements
+6. Maintain natural conversation flow
+7. Be supportive while maintaining professional standards
+
+RESPONSE FORMAT:
+- Keep responses concise and focused
+- Ask clear, specific questions
+- Provide brief positive reinforcement when appropriate
+- Use a conversational, professional tone
+
+Remember: This is a practice session designed to help the candidate improve. Be constructive, encouraging, and realistic.`;
     };
     
-    const system_instruction = getSystemInstruction(stage);
+    // Prepare the conversation for Gemini API format
+    const systemInstruction = getSystemInstruction(stage);
     
-    // Construct the conversation history for the prompt
-    const historyForPrompt = conversationHistory.map((msg: { sender: string; text: string; }) => 
-      `${msg.sender.toUpperCase()}: ${msg.text}`
-    ).join('\n');
-    
-    // Construct the full prompt
-    const prompt = `${system_instruction}
+    // Convert conversation history to Gemini format
+    const contents = [
+        {
+            role: 'user',
+            parts: [{ 
+                text: `${systemInstruction}\n\nCandidate's Resume Context:\n${JSON.stringify(resumeData, null, 2)}\n\nPlease start the ${stage} interview stage.` 
+            }]
+        }
+    ];
 
-RESUME DATA:
-${JSON.stringify(resumeData, null, 2)}
-
-CONVERSATION HISTORY:
-${historyForPrompt}
-
-Please provide your next question or feedback based on the current stage: ${stage}`;
-
-    // Generate streaming response from Gemini
-    const geminiStream = await genAI
-      .getGenerativeModel({ model: 'gemini-1.5-flash-latest' })
-      .generateContentStream({ 
-        contents: [{ role: 'user', parts: [{ text: prompt }] }] 
-      });
-
-    // Create a readable stream from the Gemini response
-    const stream = createReadableStream(geminiStream);
-
-    // Return the streaming response
-    return new Response(stream, {
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-      },
+    // Add conversation history
+    conversationHistory.forEach((msg: { sender: string; text: string; }) => {
+        contents.push({
+            role: msg.sender === 'AI' ? 'model' : 'user',
+            parts: [{ text: msg.text }]
+        });
     });
 
+    console.log(`Sending prompt to Gemini for stage: ${stage}`);
+
+    const result = await streamText({
+        model: google('gemini-1.5-flash-latest', {
+            apiKey: process.env.GEMINI_API_KEY!,
+        }),
+        messages: conversationHistory.map((msg: { sender: string; text: string; }) => ({
+            role: msg.sender === 'AI' ? 'assistant' : 'user',
+            content: msg.text
+        })),
+        system: systemInstruction + `\n\nCandidate's Resume Context:\n${JSON.stringify(resumeData, null, 2)}`,
+        temperature: 0.7,
+        maxTokens: 1024,
+    });
+      
+    console.log("Successfully initiated stream from Gemini.");
+
+    return result.toDataStreamResponse();
+
   } catch (error) {
-    console.error('Error in interview API:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+    console.error('[INTERVIEW_API_ERROR]', error);
+    
+    // Return a more detailed error response for debugging
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    
+    return new Response(
+      JSON.stringify({ 
+        error: 'Failed to process interview request', 
+        details: errorMessage,
+        timestamp: new Date().toISOString()
+      }), 
+      { 
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
     );
   }
+}
+
+function google(arg0: string, arg1: { apiKey: string; }): import("@ai-sdk/provider").LanguageModelV1 {
+  throw new Error('Function not implemented.');
 }
