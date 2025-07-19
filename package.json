@@ -20,8 +20,10 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "lucide-react": "^0.395.0",
+    "mammoth": "^1.9.1",
     "next": "^14.2.30",
     "openai": "^4.52.0",
+    "pdf-parse": "^1.1.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "tailwind-merge": "^2.3.0",
@@ -31,6 +33,7 @@
   "devDependencies": {
     "@types/dom-speech-recognition": "^0.0.6",
     "@types/node": "^20",
+    "@types/pdf-parse": "^1.1.5",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.4.21",
