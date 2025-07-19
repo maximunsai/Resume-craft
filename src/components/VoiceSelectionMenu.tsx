@@ -1,53 +1,56 @@
-// src/components/VoiceSelectionMenu.tsx
-
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSpeechSynthesis, AppVoice } from '@/hooks/useSpeechSynthesis'; // Your existing hook
-import { useInterviewStore } from '@/store/interviewStore';
-import { UserCog } from 'lucide-react';
+// We need this hook to get the list of NATIVE browser voices.
+import { useNativeSpeechSynthesis } from '@/hooks/useNativeSpeechSynthesis'; 
+// =================================================================
+// THE DEFINITIVE FIX IS HERE:
+// We import `AppVoice` from the store, its single source of truth.
+// =================================================================
+import { useInterviewStore, type AppVoice } from '@/store/interviewStore';
+import { UserCog, Check } from 'lucide-react';
 
 export const VoiceSelectionMenu = () => {
-    // Local state to control if the dropdown is open
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     
-    // Get the list of voices from our hook
-    const { voices, supported: ttsSupported } = useSpeechSynthesis();
+    // This hook correctly provides the list of available browser voices.
+    const { voices, supported: ttsSupported } = useNativeSpeechSynthesis();
     
-    // Get the currently selected voice and the function to set it from our global store
-    const { selectedVoice, setSelectedVoice } = useInterviewStore();
+    // We get the selected native voice and the setter from our global store.
+    const { selectedVoice, setSelectedVoice } = useInterviewStore(state => ({
+        selectedVoice: state.selectedVoice,
+        setSelectedVoice: state.setSelectedVoice,
+    }));
 
-    // Effect to set a default voice when the component loads and voices are available
+    // This effect sets a default native voice when the component loads.
     useEffect(() => {
         if (!selectedVoice && voices.length > 0) {
-            // Prefer a high-quality Google voice, otherwise take the first available
-            const defaultVoice = voices.find(v => v.name.includes('Google US English')) || voices[0];
+            const defaultVoice = voices.find(v => v.name.includes('Google US English')) || voices.find(v => v.name.includes('Microsoft David')) || voices[0];
             setSelectedVoice(defaultVoice);
         }
     }, [voices, selectedVoice, setSelectedVoice]);
 
-    // Don't render anything if TTS is not supported by the browser
+    // The VoiceSelectionMenu now controls the FALLBACK native voice.
+    // The premium voice is chosen automatically by the backend.
     if (!ttsSupported) {
         return null;
     }
 
     return (
         <div className="relative">
-            {/* The button that shows the current voice and toggles the menu */}
             <button 
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-700 rounded-lg text-sm hover:bg-gray-600 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-gray-700 rounded-lg text-sm hover:bg-gray-600 transition-colors w-52 justify-between"
             >
                 <UserCog size={16} />
-                <span className="truncate w-40 text-left">
-                    {selectedVoice ? selectedVoice.name : 'Loading Voices...'}
+                <span className="truncate flex-1 text-left">
+                    {selectedVoice ? selectedVoice.name : 'Select Fallback Voice'}
                 </span>
             </button>
 
-            {/* The dropdown menu */}
             {isMenuOpen && (
                 <div className="absolute right-0 top-full mt-2 w-72 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-10">
-                    <p className="p-3 text-xs text-gray-400 border-b border-gray-700">Select Interviewer Voice</p>
+                    <p className="p-3 text-xs text-gray-400 border-b border-gray-700">Select Fallback Voice</p>
                     <ul className="max-h-60 overflow-y-auto">
                         {voices.length > 0 ? voices.map(voiceOption => (
                             <li key={voiceOption.name}>
@@ -56,13 +59,14 @@ export const VoiceSelectionMenu = () => {
                                         setSelectedVoice(voiceOption);
                                         setIsMenuOpen(false);
                                     }}
-                                    className={`w-full text-left px-3 py-2 text-sm hover:bg-yellow-500/20 ${selectedVoice?.name === voiceOption.name ? 'text-yellow-400' : ''}`}
+                                    className={`w-full text-left px-3 py-2 text-sm hover:bg-yellow-500/20 flex items-center justify-between ${selectedVoice?.name === voiceOption.name ? 'text-yellow-400' : ''}`}
                                 >
-                                    {voiceOption.name}
+                                    <span>{voiceOption.name}</span>
+                                    {selectedVoice?.name === voiceOption.name && <Check size={16} />}
                                 </button>
                             </li>
                         )) : (
-                            <li className="px-3 py-2 text-sm text-gray-500">No voices available.</li>
+                            <li className="px-3 py-2 text-sm text-gray-500">No native voices found.</li>
                         )}
                     </ul>
                 </div>

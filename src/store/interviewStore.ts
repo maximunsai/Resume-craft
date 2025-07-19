@@ -1,51 +1,78 @@
-// src/store/interviewStore.ts
+'use client';
 
 import { create } from 'zustand';
 
+// EXPORTED: This type is shared with other components.
 export interface Message {
     sender: 'AI' | 'user';
     text: string;
     feedback?: string | null;
 }
 
-// We need to export this type to use it in our new component
+// EXPORTED: This type is shared with the VoiceSelectionMenu.
 export interface AppVoice {
     voice: SpeechSynthesisVoice;
     name: string;
     lang: string;
 }
 
-export type InterviewStage = 'Behavioral' | 'Technical' | 'Situational';
-
-interface InterviewState {
+// The "shape" of our store's data
+interface InterviewStateData {
     messages: Message[];
     isAwaitingResponse: boolean;
-    selectedVoice: AppVoice | null; // <-- NEW: To store the selected voice object
+    selectedPersonaId: string | null; // For premium voices
+    selectedVoice: AppVoice | null;   // For native fallback voices
+    stage: InterviewStage;
+}
+
+// The "shape" of our store's functions (actions)
+interface InterviewStateActions {
     addMessage: (message: Message) => void;
     startNewInterview: (initialQuestion: string) => void;
     setIsAwaitingResponse: (isLoading: boolean) => void;
     addFeedbackToLastMessage: (feedback: string) => void;
-    setSelectedVoice: (voice: AppVoice | null) => void; // <-- NEW: Setter function
-    stage: InterviewStage; // <-- NEW: To track the current stage
-    setStage: (stage: InterviewStage) => void; // <-- NEW: Setter function
+    setSelectedPersonaId: (id: string | null) => void;
+    setSelectedVoice: (voice: AppVoice | null) => void;
+    setStage: (stage: InterviewStage) => void;
+    clearInterview: () => void;
 }
 
-export const useInterviewStore = create<InterviewState>((set) => ({
+export type InterviewStage = 'Behavioral' | 'Technical' | 'Situational';
+
+// The final, complete state combines data and actions
+export type InterviewState = InterviewStateData & InterviewStateActions;
+
+// --- Initial State Definition ---
+const initialState: InterviewStateData = {
     messages: [],
     isAwaitingResponse: false,
-    selectedVoice: null, // <-- NEW: Initialize as null
-    addMessage: (message) => set((state) => ({ messages: [...state.messages, message] })),
+    selectedPersonaId: null,
+    selectedVoice: null,
+    stage: 'Behavioral',
+};
 
-    stage: 'Behavioral', // <-- NEW: The interview always starts at the Behavioral stage
-    setStage: (stage) => set({ stage }), // <-- NEW: Implementation
+export const useInterviewStore = create<InterviewState>((set) => ({
+    ...initialState,
+
+    // --- Actions Implementation ---
+    addMessage: (message) => set((state) => ({ messages: [...state.messages, message] })),
     startNewInterview: (initialQuestion) => set({
         messages: [{ sender: 'AI', text: initialQuestion }],
         isAwaitingResponse: false,
-        stage: 'Behavioral', // Reset stage to Behavioral on new interview
+        stage: 'Behavioral',
     }),
     setIsAwaitingResponse: (isLoading) => set({ isAwaitingResponse: isLoading }),
-    addFeedbackToLastMessage: (feedback) => {
-        // ... (this function is unchanged)
-    },
-    setSelectedVoice: (voice) => set({ selectedVoice: voice }), // <-- NEW: Implementation
+    addFeedbackToLastMessage: (feedback) => set((state) => {
+        const lastMessageIndex = state.messages.length - 1;
+        if (lastMessageIndex >= 0 && state.messages[lastMessageIndex].sender === 'user') {
+            const newMessages = [...state.messages];
+            newMessages[lastMessageIndex] = { ...newMessages[lastMessageIndex], feedback };
+            return { messages: newMessages };
+        }
+        return state;
+    }),
+    setSelectedPersonaId: (id) => set({ selectedPersonaId: id }),
+    setSelectedVoice: (voice) => set({ selectedVoice: voice }),
+    setStage: (stage) => set({ stage }),
+    clearInterview: () => set({ messages: [] }),
 }));
