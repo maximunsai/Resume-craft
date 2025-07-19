@@ -16,10 +16,11 @@ export default function InterviewSessionPage() {
     const [isThinking, setIsThinking] = useState(false);
     const [userInput, setUserInput] = useState('');
     const [sessionActive, setSessionActive] = useState(false);
-    const router = useRouter();
+    const [lastSpokenMessageIndex, setLastSpokenMessageIndex] = useState<number | null>(null);
     const chatContainerRef = useRef<HTMLDivElement>(null);
+    const router = useRouter();
 
-    // --- Voice Hooks ---
+    // --- Voice Hooks (The component's interaction is now simplified) ---
     const { text: speechToText, interimText, isListening, startListening, stopListening, hasRecognitionSupport } = useSpeechRecognition();
     const { speak, cancel: cancelSpeech, isLoading: isAudioLoading, isSpeaking } = useSpeechSynthesis();
 
@@ -36,13 +37,19 @@ export default function InterviewSessionPage() {
         }
     }, [messages.length, resumeState.personal.name, startNewInterview]);
 
+    // THE LOOPING FIX: This effect now speaks the latest AI message, but only once.
     useEffect(() => {
         if (!sessionActive) return;
-        const lastMessage = messages[messages.length - 1];
-        if (lastMessage && lastMessage.sender === 'AI' && lastMessage.text && !isThinking) {
+        const lastMessageIndex = messages.length - 1;
+        const lastMessage = messages[lastMessageIndex];
+
+        // This condition is the key: Only speak if the AI has finished thinking (`!isThinking`),
+        // the message is from the AI and has content, AND we haven't spoken this specific message index before.
+        if (lastMessage && lastMessage.sender === 'AI' && lastMessage.text && !isThinking && lastSpokenMessageIndex !== lastMessageIndex) {
             speak(lastMessage.text);
+            setLastSpokenMessageIndex(lastMessageIndex);
         }
-    }, [messages, sessionActive, isThinking, speak]);
+    }, [messages, sessionActive, isThinking, speak, lastSpokenMessageIndex]);
 
     useEffect(() => {
         const lastMessage = messages[messages.length - 1];
@@ -61,8 +68,10 @@ export default function InterviewSessionPage() {
     const handleStartSession = () => {
         setSessionActive(true);
         const firstMessage = messages[0];
-        if (firstMessage && firstMessage.text) {
+        const firstMessageIndex = 0;
+        if (firstMessage && firstMessage.text && lastSpokenMessageIndex !== firstMessageIndex) {
             speak(firstMessage.text);
+            setLastSpokenMessageIndex(firstMessageIndex);
         }
     };
 
@@ -91,39 +100,30 @@ export default function InterviewSessionPage() {
             });
 
             if (!response.ok || !response.body) throw new Error(`Server error`);
-
+            
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
-                
-                const chunk = decoder.decode(value, { stream: true });
-                
-                // =================================================================
-                // THE DEFINITIVE FIX: The setState function now correctly RETURNS state.
-                // =================================================================
                 useInterviewStore.setState(state => {
                     const lastMessage = state.messages[state.messages.length - 1];
                     if (lastMessage?.sender === 'AI') {
-                        const updatedMessage = { ...lastMessage, text: lastMessage.text + chunk };
-                        const newMessages = [...state.messages.slice(0, -1), updatedMessage];
-                        return { messages: newMessages }; // This return is critical
+                        const updatedMessage = { ...lastMessage, text: lastMessage.text + decoder.decode(value, { stream: true }) };
+                        return { messages: [...state.messages.slice(0, -1), updatedMessage] };
                     }
-                    return state; // Always return state
+                    return state;
                 });
             }
         } catch (error) {
             console.error("API stream failed:", error);
-            // Also fix the error handling setState call
             useInterviewStore.setState(state => {
                 const lastMessage = state.messages[state.messages.length - 1];
                 if (lastMessage?.sender === 'AI') {
                     const updatedMessage = { ...lastMessage, text: "Sorry, I encountered a connection issue. Please try again." };
-                    const newMessages = [...state.messages.slice(0, -1), updatedMessage];
-                    return { messages: newMessages }; // This return is critical
+                    return { messages: [...state.messages.slice(0, -1), updatedMessage] };
                 }
-                return state; // Always return state
+                return state;
             });
         } finally {
             setIsThinking(false);
@@ -132,15 +132,15 @@ export default function InterviewSessionPage() {
 
     const handleFinishInterview = async () => { /* ... Your working function ... */ };
 
-    // --- Conditional UI ---
-    const isVoiceReady = process.env.NEXT_PUBLIC_PREMIUM_VOICE_ENABLED === 'true' || !!selectedVoice;
+    // This variable now correctly determines if a voice has been chosen
+    const isVoiceReady = (process.env.NEXT_PUBLIC_PREMIUM_VOICE_ENABLED === 'true' && selectedPersonaId) || (!(process.env.NEXT_PUBLIC_PREMIUM_VOICE_ENABLED === 'true') && selectedVoice);
 
     if (!sessionActive) {
         return (
             <div className="max-w-4xl mx-auto p-8 flex flex-col items-center justify-center h-[calc(100vh-65px)] text-center">
                 <div className="bg-gray-800 p-8 rounded-xl border border-gray-700 w-full max-w-lg">
                     <h1 className="text-3xl font-poppins font-bold text-white mb-4">Mock Interview Ready</h1>
-                    <p className="text-gray-400 mb-6">Your AI interviewer, Forge, is ready to begin. Select a voice and click start.</p>
+                    <p className="text-gray-400 mb-6">Your AI interviewer is ready. Select a voice and click start.</p>
                     <div className="mb-6 flex justify-center"><VoiceSelectionMenu /></div>
                     <button onClick={handleStartSession} disabled={!isVoiceReady} className="w-full flex items-center justify-center gap-3 px-12 py-4 bg-yellow-400 text-gray-900 font-bold rounded-lg text-xl disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed hover:bg-yellow-500 shadow-lg">
                         <PlayCircle /> Start Interview
@@ -150,18 +150,11 @@ export default function InterviewSessionPage() {
         );
     }
     
-    // --- Main Chat UI ---
     return (
         <div className="max-w-4xl mx-auto p-4 flex flex-col h-[calc(100vh-65px)]">
             <div className="flex justify-between items-center mb-4 flex-shrink-0">
-                <div>
-                    <h1 className="text-2xl font-bold text-white">Mock Interview Session</h1>
-                    <p className="text-sm font-semibold text-yellow-400">Stage: {stage}</p>
-                </div>
-                <div className="flex items-center gap-4">
-                    <VoiceSelectionMenu />
-                    <button onClick={handleFinishInterview} disabled={isThinking || messages.length < 2} className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed"> <Flag size={16} /> End & Analyze </button>
-                </div>
+                <div><h1 className="text-2xl font-bold text-white">Mock Interview Session</h1><p className="text-sm font-semibold text-yellow-400">Stage: {stage}</p></div>
+                <div className="flex items-center gap-4"><VoiceSelectionMenu /><button onClick={handleFinishInterview} disabled={isThinking || messages.length < 2} className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed"> <Flag size={16} /> End & Analyze </button></div>
             </div>
             <div ref={chatContainerRef} className="flex-1 overflow-y-auto space-y-6 p-4 rounded-t-lg bg-gray-800/50 border-x border-t border-gray-700">
                 {messages.map((msg, index) => (
