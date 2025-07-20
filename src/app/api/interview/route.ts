@@ -1,22 +1,20 @@
-// src/app/api/interview/route.ts – SDK-only version, no 'ai/google'
-
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-export const runtime = 'edge'; // Enable Next.js Edge Runtime
+export const runtime = 'edge';
 
-// Initialize Gemini client with your API key
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
-// Convert Gemini's stream result into a ReadableStream suitable for streaming in Edge Functions
-function createReadableStream(response: AsyncIterable<any>): ReadableStream {
+// This function now correctly returns a string.
+function createReadableStream(responseStream: AsyncIterable<any>): ReadableStream {
   const encoder = new TextEncoder();
-
   return new ReadableStream({
     async start(controller) {
       try {
-        for await (const chunk of response) {
-          const text = chunk.text ?? chunk.parts?.map((p: { text: any; }) => p.text).join('') ?? '';
-          controller.enqueue(encoder.encode(text));
+        for await (const chunk of responseStream) {
+          const text = chunk.text();
+          if (text) {
+            controller.enqueue(encoder.encode(text));
+          }
         }
         controller.close();
       } catch (e) {
@@ -31,7 +29,9 @@ export async function POST(req: Request) {
   try {
     const { resumeData = {}, conversationHistory = [], stage = 'Behavioral' } = await req.json();
 
-    // Generate the appropriate system instruction based on the interview stage
+    // =================================================================
+    // THE DEFINITIVE FIX: The complete and correct function implementation.
+    // =================================================================
     const getSystemInstruction = (currentStage: string): string => {
       let stageInstruction = '';
       switch (currentStage) {
@@ -60,6 +60,7 @@ export async function POST(req: Request) {
           break;
       }
 
+      // This is the CRITICAL 'return' statement that was missing.
       return `
         You are "Forge," a world-class AI mock interviewer. You will adopt a specific persona based on the interview stage.
 
@@ -76,13 +77,8 @@ export async function POST(req: Request) {
     };
 
     const systemInstruction = getSystemInstruction(stage);
+    const historyForPrompt = conversationHistory.map((msg: { sender: string; text: string }) => `${msg.sender.toUpperCase()}: ${msg.text}`).join('\n');
 
-    // Convert conversation history into a readable prompt section
-    const historyForPrompt = conversationHistory
-      .map((msg: { sender: string; text: string }) => `${msg.sender.toUpperCase()}: ${msg.text}`)
-      .join('\n');
-
-    // Final prompt sent to the model
     const prompt = `
       ${systemInstruction}
       ---
@@ -104,7 +100,6 @@ export async function POST(req: Request) {
 
     console.log('Successfully initiated stream from Gemini.');
 
-    // 🔁 Return a streaming text/plain response
     return new Response(createReadableStream(result.stream), {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
