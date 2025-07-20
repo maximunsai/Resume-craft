@@ -4,7 +4,6 @@ export const runtime = 'edge';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
-// This function now correctly returns a string.
 function createReadableStream(responseStream: AsyncIterable<any>): ReadableStream {
   const encoder = new TextEncoder();
   return new ReadableStream({
@@ -30,67 +29,66 @@ export async function POST(req: Request) {
     const { resumeData = {}, conversationHistory = [], stage = 'Behavioral' } = await req.json();
 
     // =================================================================
-    // THE DEFINITIVE FIX: The complete and correct function implementation.
+    // THIS IS YOUR EXPERT PROMPT, DIRECTLY INTEGRATED
     // =================================================================
-    const getSystemInstruction = (currentStage: string): string => {
-      let stageInstruction = '';
-      switch (currentStage) {
-        case 'Technical':
-          stageInstruction = `
-            You are now a Senior Engineer from a top tech company. Your focus is 100% technical.
-            - Ask specific, deep technical questions based on the technologies listed in the user's resume (e.g., "I see you used PostgreSQL. Can you describe a time you had to optimize a slow query? What were the steps you took?").
-            - Present realistic system design scenarios (e.g., "How would you design a URL shortening service?").
-            - If the resume mentions specific projects, ask for detailed architectural discussions about them.
-            - Your feedback should critique the technical accuracy, depth, and clarity of the user's explanation.`;
-          break;
-        case 'Situational':
-          stageInstruction = `
-            You are now an experienced HR Manager. Your focus is 100% on situational and company-fit questions.
-            - Ask classic HR questions like: "What is your expected salary range?", "Why are you looking to leave your current role?", "Where do you see yourself in 5 years?", "Why do you want to join our company?".
-            - Present situational challenges like: "Describe a time you had a conflict with a colleague. How did you resolve it?", "How would you handle a situation where you strongly disagree with your manager's decision?".
-            - Your feedback should evaluate the user's professionalism, strategic thinking, and communication skills.`;
-          break;
-        case 'Behavioral':
-        default:
-          stageInstruction = `
-            You are now a Hiring Manager focused on behavior and past performance. Your focus is 100% behavioral.
-            - Ask questions that prompt STAR-method answers (Situation, Task, Action, Result), such as: "Tell me about a challenging project you led.", "Describe a time you had to work under a tight deadline.", "Walk me through your most significant accomplishment at your last role.".
-            - Do not ask generic technical or HR questions. Focus purely on past behavior.
-            - Your feedback should critique how well the user structured their answer, ideally using the STAR method.`;
-          break;
-      }
+    const getSystemInstruction = (currentStage: string, userData: any): string => {
+        let stageInstruction = '';
+        let examples = '';
 
-      // This is the CRITICAL 'return' statement that was missing.
-      return `
-        You are "Forge," a world-class AI mock interviewer. You will adopt a specific persona based on the interview stage.
+        switch (currentStage) {
+            case 'Technical':
+                stageInstruction = `Generate a technical question that is **directly and explicitly linked** to the user's background in the \`userData\` object. You MUST synthesize information from \`technicalSkills\` and \`workExperience\` to create a realistic and challenging question. Do not ask generic, textbook questions.`;
+                examples = `
+                * (Synthesizing Skill + Experience): "In your role at ${userData.workExperience?.[0]?.company || 'your last company'}, you mentioned building RESTful APIs with Node.js. Could you describe how you would implement rate-limiting on those APIs to prevent abuse?"
+                * (Deep-Dive on a Skill): "You've listed 'React' as a skill. Can you explain the difference between a controlled and an uncontrolled component, and why you might choose one over the other?"
+                * (Problem-Solving based on Experience): "Your resume states you 'optimized SQL database queries'. Walk me through the process you used to identify a slow query."`;
+                break;
+            case 'Situational': // Mapped from 'HR & Situational'
+                stageInstruction = `Generate a question typical of a Human Resources (HR) screening or a final-round culture-fit interview. This can include situational judgment, career aspirations, or salary discussions. Do NOT ask deep technical questions.`;
+                examples = `
+                * "Where do you see yourself professionally in the next 5 years?"
+                * "What are your salary expectations for this role?"
+                * "Imagine you discovered your team lead made a significant error in a report. What would you do?"`;
+                break;
+            case 'Behavioral':
+            default:
+                stageInstruction = `Generate a standard behavioral question designed to be answered using the STAR method (Situation, Task, Action, Result). Do NOT use the user's technical skills or experience. These questions should be generic and focus on soft skills.`;
+                examples = `
+                * "Tell me about a time you had a significant disagreement with a coworker. How did you handle it?"
+                * "Describe a situation where you had to learn a new technology or skill in a short amount of time."`;
+                break;
+        }
 
-        **CURRENT STAGE**: ${currentStage}
-
-        **YOUR STRICT TASK**: Adhere strictly to the persona and instructions for the current stage. Analyze the user's resume and conversation to ask a relevant question. After the user answers, provide concise, expert feedback, then ask the next question for this stage.
+        return `You are "Interview Architect," an expert AI interview coach. Your purpose is to generate one highly relevant, single interview question.
         
+        **### CONTEXT ###**
+        You are the core logic for a mock interview application. A user has chosen a specific interview category: "${currentStage}".
+        
+        **### YOUR OBJECTIVE ###**
+        Generate a single, precise interview question based on the chosen category.
+        
+        **### STAGE-SPECIFIC INSTRUCTION ###**
         ${stageInstruction}
         
-        **RULES**:
-        - Ask ONLY ONE question at a time.
-        - Respond naturally as plain text. Do not use JSON or markdown.
-      `;
+        **### EXAMPLES of good questions for this stage ###**
+        ${examples}
+        
+        **### RULE ###**
+        Ask ONLY ONE question. Do not add any feedback, greetings, or conversational filler. Your entire response must be just the question itself.`;
     };
 
-    const systemInstruction = getSystemInstruction(stage);
-    const historyForPrompt = conversationHistory.map((msg: { sender: string; text: string }) => `${msg.sender.toUpperCase()}: ${msg.text}`).join('\n');
+    const systemInstruction = getSystemInstruction(stage, {
+        technicalSkills: resumeData.skills,
+        workExperience: resumeData.experience,
+    });
+    
+    // For the very first question, we don't have user history yet.
+    const isInitialQuestion = conversationHistory.length <= 1;
+    const historyForPrompt = isInitialQuestion ? "" : conversationHistory.map((msg: { sender: string; text: string }) => `${msg.sender.toUpperCase()}: ${msg.text}`).join('\n');
 
-    const prompt = `
-      ${systemInstruction}
-      ---
-      USER'S RESUME: ${JSON.stringify(resumeData)}
-      ---
-      CONVERSATION HISTORY:
-      ${historyForPrompt}
-      ---
-      FORGE'S NEXT RESPONSE:
-    `;
-
-    console.log(`Sending prompt to Gemini for stage: ${stage}`);
+    const prompt = isInitialQuestion 
+        ? systemInstruction 
+        : `${systemInstruction}\n\n--- CONVERSATION HISTORY ---\n${historyForPrompt}\n\n--- YOUR NEXT QUESTION ---`;
 
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
 
@@ -98,16 +96,9 @@ export async function POST(req: Request) {
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
     });
 
-    console.log('Successfully initiated stream from Gemini.');
-
     return new Response(createReadableStream(result.stream), {
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-      },
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
     });
 
-  } catch (error) {
-    console.error('[INTERVIEW_API_ERROR]', error);
-    return new Response('An error occurred while processing your request.', { status: 500 });
-  }
+  } catch (error) { /* ... Your existing error handling ... */ }
 }

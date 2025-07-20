@@ -1,32 +1,31 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useResumeStore } from '@/store/resumeStore';
 import { useInterviewStore, InterviewStage } from '@/store/interviewStore';
-import { useRouter } from 'next/navigation';
-import { User, Cpu, BarChart3 } from 'lucide-react'; // Icons for our cards
+import { User, Cpu, BarChart3 } from 'lucide-react'; // Icons for our selection cards
 
 export default function InterviewLobbyPage() {
     const router = useRouter();
     const { personal, experience } = useResumeStore();
-    // Get the actions to set the stage and start a new interview
-    const { setStage, startNewInterview, clearInterview } = useInterviewStore();
+    const { setStage, clearInterview } = useInterviewStore();
 
     const canStartInterview = personal.name && experience[0]?.title;
 
     const handleSelectInterviewType = (stage: InterviewStage) => {
         if (!canStartInterview) {
-            alert("Please fill out your resume details before starting an interview.");
+            alert("Please ensure your name and at least one experience entry are filled out in the Resume Builder before starting.");
             router.push('/builder');
             return;
         }
         
-        // Clear any previous interview session data
+        // Clear any previous interview data for a fresh start
         clearInterview();
         
         // Set the chosen stage in our global store
         setStage(stage);
         
-        // Directly navigate to the session page
+        // Navigate directly to the session page to begin the interview
         router.push('/interview/session');
     };
 
@@ -40,7 +39,7 @@ export default function InterviewLobbyPage() {
             <div className="bg-gray-800 p-6 rounded-xl border border-gray-700 mb-8 text-center">
                 <h2 className="text-lg font-bold text-white">Interview will be based on your resume for:</h2>
                 <p className="text-yellow-400 font-semibold mt-1">{personal.name || "..."}</p>
-                <p className="text-gray-400 text-sm">{experience[0]?.title ? `Role: ${experience[0].title}` : "No primary role found."}</p>
+                <p className="text-gray-400 text-sm">{experience[0]?.title ? `Role: ${experience[0].title}` : "No primary role specified"}</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
