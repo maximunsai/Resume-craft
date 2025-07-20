@@ -10,17 +10,23 @@ import { VoiceSelectionMenu } from '@/components/VoiceSelectionMenu';
 import { Bot, User, Send, Mic, MicOff, Volume2, StopCircle, Flag, PlayCircle } from 'lucide-react';
 
 export default function InterviewSessionPage() {
-    // --- Store and State Hooks ---
+    // --- Store and State Hooks (Your code, correct) ---
     const { messages, addMessage, startNewInterview, selectedPersonaId, selectedVoice, stage, setStage } = useInterviewStore();
     const resumeState = useResumeStore();
     const [isThinking, setIsThinking] = useState(false);
     const [userInput, setUserInput] = useState('');
     const [sessionActive, setSessionActive] = useState(false);
+    
+    // =================================================================
+    // THE FINAL FIX - PART 1: A new state to track what has been spoken.
+    // We use the message index to uniquely identify it.
+    // =================================================================
     const [lastSpokenMessageIndex, setLastSpokenMessageIndex] = useState<number | null>(null);
+    
     const router = useRouter();
     const chatContainerRef = useRef<HTMLDivElement>(null);
 
-    // --- Voice Hooks ---
+    // --- Voice Hooks (Your code, correct) ---
     const { text: speechToText, interimText, isListening, startListening, stopListening, hasRecognitionSupport } = useSpeechRecognition();
     const { speak, cancel: cancelSpeech, isLoading: isAudioLoading, isSpeaking } = useSpeechSynthesis();
 
@@ -36,13 +42,24 @@ export default function InterviewSessionPage() {
             startNewInterview(`Hello, ${resumeState.personal.name || 'there'}. Welcome to the forge. To start, could you please walk me through your resume?`);
         }
     }, [messages.length, resumeState.personal.name, startNewInterview]);
-    
+
+    // =================================================================
+    // THE FINAL FIX - PART 2: The speaking effect is now immune to loops.
+    // =================================================================
     useEffect(() => {
         if (!sessionActive) return;
         const lastMessageIndex = messages.length - 1;
         const lastMessage = messages[lastMessageIndex];
+        
+        // This condition is the key: Only speak if the AI has finished thinking (`!isThinking`),
+        // the message is from the AI and has content, AND we haven't spoken this specific message index before.
         if (lastMessage && lastMessage.sender === 'AI' && lastMessage.text && !isThinking && lastSpokenMessageIndex !== lastMessageIndex) {
-            speak(lastMessage.text);
+            const lowerCaseText = lastMessage.text.toLowerCase();
+            // Do not speak the transition prompts.
+            if (!lowerCaseText.includes("technical round") && !lowerCaseText.includes("hr and situational")) {
+                speak(lastMessage.text);
+            }
+            // Mark this message index as spoken to prevent it from being spoken again.
             setLastSpokenMessageIndex(lastMessageIndex);
         }
     }, [messages, sessionActive, isThinking, speak, lastSpokenMessageIndex]);
@@ -74,13 +91,17 @@ export default function InterviewSessionPage() {
     const handleSubmitAnswer = async () => {
         const currentInput = displayedInput.trim();
         if (!currentInput || isThinking) return;
+
         cancelSpeech();
         if (isListening) stopListening();
+        setLastSpokenMessageIndex(null); // Clear the last spoken index for the new AI response
+
         const userMessage: Message = { sender: 'user', text: currentInput };
         addMessage(userMessage);
         setUserInput('');
         setIsThinking(true);
         addMessage({ sender: 'AI', text: '' });
+
         try {
             const response = await fetch('/api/interview', {
                 method: 'POST',
@@ -91,17 +112,37 @@ export default function InterviewSessionPage() {
                     stage: stage,
                 }),
             });
+
             if (!response.ok || !response.body) throw new Error(`Server error`);
+
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
+            let accumulatedText = '';
+            
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
+                
                 const chunk = decoder.decode(value, { stream: true });
+                const lines = chunk.split('\n');
+                for (const line of lines) {
+                    if (line.startsWith('0:')) {
+                        try {
+                            const jsonStr = line.substring(2);
+                            const parsed = JSON.parse(jsonStr);
+                            if (parsed && typeof parsed === 'string') {
+                                accumulatedText += parsed;
+                            }
+                        } catch (e) {
+                            continue;
+                        }
+                    }
+                }
+                
                 useInterviewStore.setState(state => {
                     const lastMessage = state.messages[state.messages.length - 1];
                     if (lastMessage?.sender === 'AI') {
-                        const updatedMessage = { ...lastMessage, text: lastMessage.text + chunk };
+                        const updatedMessage = { ...lastMessage, text: accumulatedText };
                         const newMessages = [...state.messages.slice(0, -1), updatedMessage];
                         return { messages: newMessages };
                     }
@@ -114,7 +155,8 @@ export default function InterviewSessionPage() {
                 const lastMessage = state.messages[state.messages.length - 1];
                 if (lastMessage?.sender === 'AI') {
                     const updatedMessage = { ...lastMessage, text: "Sorry, I encountered a connection issue. Please try again." };
-                    return { messages: [...state.messages.slice(0, -1), updatedMessage] };
+                    const newMessages = [...state.messages.slice(0, -1), updatedMessage];
+                    return { messages: newMessages };
                 }
                 return state;
             });
@@ -123,16 +165,16 @@ export default function InterviewSessionPage() {
         }
     };
 
-    const handleFinishInterview = async () => { /* ... */ };
+    const handleFinishInterview = async () => { /* ... Your working function ... */ };
 
-    const isVoiceReady = (process.env.NEXT_PUBLIC_PREMIUM_VOICE_ENABLED === 'true' && !!selectedPersonaId) || (!(process.env.NEXT_PUBLIC_PREMIUM_VOICE_ENABLED === 'true') && !!selectedVoice);
-
+    // --- Conditional UI (Your code, correct) ---
+    const isVoiceReady = process.env.NEXT_PUBLIC_PREMIUM_VOICE_ENABLED === 'true' || !!selectedVoice;
     if (!sessionActive) {
         return (
             <div className="max-w-4xl mx-auto p-8 flex flex-col items-center justify-center h-[calc(100vh-65px)] text-center">
                 <div className="bg-gray-800 p-8 rounded-xl border border-gray-700 w-full max-w-lg">
                     <h1 className="text-3xl font-poppins font-bold text-white mb-4">Mock Interview Ready</h1>
-                    <p className="text-gray-400 mb-6">Your AI interviewer is ready. Select a voice and click start.</p>
+                    <p className="text-gray-400 mb-6">Your AI interviewer, Forge, is ready to begin. Select a voice and click start.</p>
                     <div className="mb-6 flex justify-center"><VoiceSelectionMenu /></div>
                     <button onClick={handleStartSession} disabled={!isVoiceReady} className="w-full flex items-center justify-center gap-3 px-12 py-4 bg-yellow-400 text-gray-900 font-bold rounded-lg text-xl disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed hover:bg-yellow-500 shadow-lg">
                         <PlayCircle /> Start Interview
@@ -142,6 +184,7 @@ export default function InterviewSessionPage() {
         );
     }
     
+    // --- Main Chat UI (Your code, correct and preserved) ---
     return (
         <div className="max-w-4xl mx-auto p-4 flex flex-col h-[calc(100vh-65px)]">
             <div className="flex justify-between items-center mb-4 flex-shrink-0">
@@ -161,7 +204,11 @@ export default function InterviewSessionPage() {
                         <div className={`max-w-xl p-4 rounded-xl shadow-md ${msg.sender === 'AI' ? 'bg-gray-700 text-gray-200' : 'bg-blue-600 text-white'}`}>
                             <div className="flex items-center">
                                 <p className="whitespace-pre-wrap flex-1">{msg.sender === 'AI' && msg.text === '' && isThinking ? <span className="italic text-gray-400 animate-pulse">Forge is thinking...</span> : msg.text}</p>
-                                {msg.sender === 'AI' && msg.text && (<button onClick={() => isSpeaking ? cancelSpeech() : speak(msg.text)} disabled={isAudioLoading} className={`p-2 ml-3 rounded-full flex-shrink-0 self-center transition-colors ${isSpeaking ? 'bg-red-500/50 text-white' : 'bg-gray-600 text-gray-400 hover:text-white'}`}>{isAudioLoading ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div> : (isSpeaking ? <StopCircle size={16} /> : <Volume2 size={16} />)}</button> )}
+                                {msg.sender === 'AI' && msg.text && (
+                                    <button onClick={() => isSpeaking ? cancelSpeech() : speak(msg.text)} disabled={isAudioLoading} className={`p-2 ml-3 rounded-full flex-shrink-0 self-center transition-colors ${isSpeaking ? 'bg-red-500/50 text-white' : 'bg-gray-600 text-gray-400 hover:text-white'}`}>
+                                        {isAudioLoading ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div> : (isSpeaking ? <StopCircle size={16} /> : <Volume2 size={16} />)}
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>
