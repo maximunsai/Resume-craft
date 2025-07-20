@@ -1,140 +1,110 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Initialize the client
+export const runtime = 'edge'; // for Next.js Edge API compatibility
+
+// Initialize the Gemini model client
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
-export const runtime = 'edge';
+// Basic stream wrapper for plain text
+function streamText(response: AsyncIterable<any>) {
+  const encoder = new TextEncoder();
+
+  return new ReadableStream({
+    async start(controller) {
+      for await (const chunk of response) {
+        // Some SDK versions use chunk.text, or chunk.parts[].text
+        const text = chunk.text ?? chunk.parts?.map((p: { text: any; }) => p.text).join('') ?? '';
+        controller.enqueue(encoder.encode(text));
+      }
+      controller.close();
+    },
+  });
+}
 
 export async function POST(req: Request) {
   try {
     const { resumeData = {}, conversationHistory = [], stage = 'Behavioral' } = await req.json();
 
-    const getSystemInstruction = (currentStage: string) => {
-        let stageInstruction = '';
-        
-        switch (currentStage) {
-            case 'Behavioral':
-                stageInstruction = `Focus on behavioral questions that assess soft skills, teamwork, leadership, problem-solving approach, and cultural fit. Ask about past experiences and how they handled specific situations.`;
-                break;
-            case 'Technical':
-                stageInstruction = `Focus on technical questions relevant to the candidate's field. Test their knowledge of programming languages, frameworks, system design, algorithms, and technical problem-solving.`;
-                break;
-            case 'Case Study':
-                stageInstruction = `Present real-world scenarios or business cases. Evaluate analytical thinking, problem-solving methodology, and practical application of skills.`;
-                break;
-            default:
-                stageInstruction = `Conduct a comprehensive interview covering various aspects of the candidate's qualifications.`;
-        }
-        
-        return `You are "Forge," a world-class AI mock interviewer with expertise in conducting professional interviews across all industries and roles.
+    // Utility: returns system prompt based on the interview stage
+    const getSystemInstruction = (currentStage: string): string => {
+      let stageInstruction = '';
 
-CORE IDENTITY:
-- Experienced, empathetic, and insightful interviewer
-- Help candidates improve through realistic practice
-- Professional yet approachable tone
-- Provide constructive feedback and guidance
+      switch (currentStage) {
+        case 'Technical':
+          stageInstruction = `
+            You are now a Senior Engineer from a top tech company. Your focus is 100% technical.
+            - Ask specific, deep technical questions based on the technologies listed in the user's resume (e.g., "I see you used PostgreSQL. Can you describe a time you had to optimize a slow query? What were the steps you took?").
+            - Present realistic system design scenarios (e.g., "How would you design a URL shortening service?").
+            - If the resume mentions specific projects, ask for detailed architectural discussions about them.
+            - Your feedback should critique the technical accuracy, depth, and clarity of the user's explanation.`;
+          break;
 
-CURRENT INTERVIEW STAGE: ${currentStage}
-STAGE FOCUS: ${stageInstruction}
+        case 'Situational':
+          stageInstruction = `
+            You are now an experienced HR Manager. Your focus is 100% on situational and company-fit questions.
+            - Ask classic HR questions like: "What is your expected salary range?", "Why are you looking to leave your current role?", "Where do you see yourself in 5 years?", "Why do you want to join our company?".
+            - Present situational challenges like: "Describe a time you had a conflict with a colleague. How did you resolve it?", "How would you handle a situation where you strongly disagree with your manager's decision?".
+            - Your feedback should evaluate the user's professionalism, strategic thinking, and communication skills.`;
+          break;
 
-INTERVIEW GUIDELINES:
-1. Ask ONE question at a time
-2. Follow up with clarifying questions when appropriate
-3. Provide encouraging feedback
-4. Guide elaboration if answers are incomplete
-5. Keep questions relevant to resume
-6. Maintain natural conversation flow
-7. Be supportive yet professional
+        case 'Behavioral':
+        default:
+          stageInstruction = `
+            You are now a Hiring Manager focused on behavior and past performance. Your focus is 100% behavioral.
+            - Ask questions that prompt STAR-method answers (Situation, Task, Action, Result), such as: "Tell me about a challenging project you led.", "Describe a time you had to work under a tight deadline.", "Walk me through your most significant accomplishment at your last role.".
+            - Do not ask generic technical or HR questions. Focus purely on past behavior.
+            - Your feedback should critique how well the user structured their answer, ideally using the STAR method.`;
+          break;
+      }
 
-RESPONSE FORMAT:
-- Keep responses concise (2-3 sentences max)
-- Ask clear, specific questions
-- Brief positive reinforcement when appropriate
-- Conversational, professional tone
+      return `You are "Forge", a world-class AI mock interviewer who adapts based on the stage of the interview.
 
-Remember: This is practice to help candidates improve. Be constructive and encouraging.
+      **CURRENT STAGE**: ${currentStage}
 
-Candidate Resume Context: ${JSON.stringify(resumeData, null, 2)}`;
+      **YOUR STRICT TASK**: Follow the persona for this stage and ask one relevant question at a time, analyze the user's resume and conversation history, provide expert feedback based on their answer, and proceed to the next question — all aligned with the current interview type.
+
+      ${stageInstruction}
+
+      **RULES**:
+      - Ask ONLY ONE question at a time.
+      - Respond naturally as plain text. Do not use JSON or markdown.`;
     };
-    
-    console.log(`Processing interview request for stage: ${stage}`);
 
-    // Convert conversation to Gemini format
-    const geminiMessages = conversationHistory.map((msg: { sender: string; text: string; }) => ({
-      role: msg.sender === 'AI' ? 'model' : 'user',
-      parts: [{ text: msg.text }]
-    }));
+    const systemInstruction = getSystemInstruction(stage);
 
-    // Add system instruction as first user message
-    const allMessages = [
-      {
-        role: 'user',
-        parts: [{ text: getSystemInstruction(stage) }]
-      },
-      ...geminiMessages
-    ];
+    const historyForPrompt = conversationHistory
+      .map((msg: { sender: string; text: string }) => `${msg.sender.toUpperCase()}: ${msg.text}`)
+      .join('\n');
 
-    const model = genAI.getGenerativeModel({ 
+    const prompt = `
+      ${systemInstruction}
+      ---
+      USER'S RESUME: ${JSON.stringify(resumeData)}
+      ---
+      CONVERSATION HISTORY:
+      ${historyForPrompt}
+      ---
+      FORGE'S NEXT RESPONSE:
+    `;
+
+    // Get the Gemini model
+    const model = genAI.getGenerativeModel({
       model: 'gemini-1.5-flash-latest',
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 500,
-      }
     });
 
-    const result = await model.generateContentStream({
-      contents: allMessages
-    });
-      
-    console.log("Successfully initiated stream from Gemini.");
-
-    // Create a custom streaming response
-    const encoder = new TextEncoder();
-    
-    const stream = new ReadableStream({
-      async start(controller) {
-        try {
-          for await (const chunk of result.stream) {
-            const chunkText = chunk.text();
-            if (chunkText) {
-              // Format as AI SDK compatible stream
-              const formattedChunk = `0:"${chunkText.replace(/"/g, '\\"')}"\n`;
-              controller.enqueue(encoder.encode(formattedChunk));
-            }
-          }
-          controller.close();
-        } catch (error) {
-          console.error('Stream error:', error);
-          controller.error(error);
-        }
-      }
+    // Stream Gemini content response
+    const generation = await model.generateContentStream({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
     });
 
-    return new Response(stream, {
+    // ✅ Use generation.stream — this is the proper AsyncIterable output
+    return new Response(streamText(generation.stream), {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
       },
     });
-
   } catch (error) {
-    console.error('[INTERVIEW_API_ERROR]', error);
-    
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    
-    return new Response(
-      JSON.stringify({ 
-        error: 'Failed to process interview request', 
-        details: errorMessage,
-        timestamp: new Date().toISOString()
-      }), 
-      { 
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      }
-    );
+    console.error('🔴 Error in mock interview API:', error);
+    return new Response('Internal Server Error', { status: 500 });
   }
 }

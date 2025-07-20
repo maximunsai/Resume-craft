@@ -16,7 +16,6 @@ export default function InterviewSessionPage() {
     const [isThinking, setIsThinking] = useState(false);
     const [userInput, setUserInput] = useState('');
     const [sessionActive, setSessionActive] = useState(false);
-    const [lastSpokenMessageId, setLastSpokenMessageId] = useState<string>('');
     const router = useRouter();
     const chatContainerRef = useRef<HTMLDivElement>(null);
 
@@ -30,28 +29,20 @@ export default function InterviewSessionPage() {
     }, [speechToText]);
 
     const displayedInput = isListening ? (userInput.endsWith(' ') ? userInput : userInput + ' ') + interimText : userInput;
-
+    
+    // --- This effect now triggers the API call for the first question ---
     useEffect(() => {
-        if (messages.length === 0) {
-            startNewInterview(`Hello, ${resumeState.personal.name || 'there'}. Welcome to the forge. To start, could you please walk me through your resume?`);
+        if (sessionActive && messages.length === 0) {
+            getInitialQuestion();
         }
-    }, [messages.length, resumeState.personal.name, startNewInterview]);
+    }, [sessionActive]); // Runs once when the session becomes active
 
     useEffect(() => {
-        if (!sessionActive) return;
         const lastMessage = messages[messages.length - 1];
-        const messageId = `${lastMessage?.sender}-${messages.length - 1}-${lastMessage?.text?.length || 0}`;
-        
-        if (lastMessage && 
-            lastMessage.sender === 'AI' && 
-            lastMessage.text && 
-            !isThinking && 
-            messageId !== lastSpokenMessageId &&
-            lastMessage.text.trim().length > 0) {
-            setLastSpokenMessageId(messageId);
+        if (lastMessage && lastMessage.sender === 'AI' && lastMessage.text && !isThinking) {
             speak(lastMessage.text);
         }
-    }, [messages, sessionActive, isThinking, speak, lastSpokenMessageId]);
+    }, [messages, isThinking, speak]);
 
     useEffect(() => {
         const lastMessage = messages[messages.length - 1];
@@ -67,34 +58,27 @@ export default function InterviewSessionPage() {
     }, [messages, isThinking]);
 
     // --- Handlers ---
+    
     const handleStartSession = () => {
+        clearInterviewState(); // Clear old messages before starting
         setSessionActive(true);
-        const firstMessage = messages[0];
-        if (firstMessage && firstMessage.text) {
-            speak(firstMessage.text);
-        }
     };
 
-    const handleSubmitAnswer = async () => {
-        const currentInput = displayedInput.trim();
-        if (!currentInput || isThinking) return;
+    const clearInterviewState = () => {
+        useInterviewStore.getState().clearInterview();
+    };
 
-        cancelSpeech();
-        if (isListening) stopListening();
-
-        const userMessage: Message = { sender: 'user', text: currentInput };
-        addMessage(userMessage);
-        setUserInput('');
+    const sendApiRequest = async (conversationHistory: Message[]) => {
         setIsThinking(true);
         addMessage({ sender: 'AI', text: '' });
-
+        
         try {
             const response = await fetch('/api/interview', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     resumeData: { name: resumeState.personal.name, experience: resumeState.experience, skills: resumeState.skills },
-                    conversationHistory: [...messages, userMessage],
+                    conversationHistory,
                     stage: stage,
                 }),
             });
@@ -110,8 +94,6 @@ export default function InterviewSessionPage() {
                 if (done) break;
                 
                 const chunk = decoder.decode(value, { stream: true });
-                
-                // Parse the streaming data correctly
                 const lines = chunk.split('\n');
                 for (const line of lines) {
                     if (line.startsWith('0:')) {
@@ -121,19 +103,14 @@ export default function InterviewSessionPage() {
                             if (parsed && typeof parsed === 'string') {
                                 accumulatedText += parsed;
                             }
-                        } catch (e) {
-                            // Skip invalid JSON lines
-                            continue;
-                        }
+                        } catch (e) { continue; }
                     }
                 }
                 
                 useInterviewStore.setState(state => {
                     const lastMessage = state.messages[state.messages.length - 1];
                     if (lastMessage?.sender === 'AI') {
-                        const updatedMessage = { ...lastMessage, text: accumulatedText };
-                        const newMessages = [...state.messages.slice(0, -1), updatedMessage];
-                        return { messages: newMessages };
+                        return { messages: [...state.messages.slice(0, -1), { ...lastMessage, text: accumulatedText }] };
                     }
                     return state;
                 });
@@ -144,8 +121,7 @@ export default function InterviewSessionPage() {
                 const lastMessage = state.messages[state.messages.length - 1];
                 if (lastMessage?.sender === 'AI') {
                     const updatedMessage = { ...lastMessage, text: "Sorry, I encountered a connection issue. Please try again." };
-                    const newMessages = [...state.messages.slice(0, -1), updatedMessage];
-                    return { messages: newMessages };
+                    return { messages: [...state.messages.slice(0, -1), updatedMessage] };
                 }
                 return state;
             });
@@ -154,9 +130,28 @@ export default function InterviewSessionPage() {
         }
     };
 
+    const getInitialQuestion = () => {
+        // We send an empty conversation history to get the first question
+        sendApiRequest([]); 
+    };
+
+    const handleSubmitAnswer = () => {
+        const currentInput = displayedInput.trim();
+        if (!currentInput || isThinking) return;
+
+        cancelSpeech();
+        if (isListening) stopListening();
+
+        const userMessage: Message = { sender: 'user', text: currentInput };
+        addMessage(userMessage);
+        setUserInput('');
+        
+        // We now call our unified API request function
+        sendApiRequest([...messages, userMessage]);
+    };
+
     const handleFinishInterview = async () => { /* ... Your working function ... */ };
 
-    // --- Conditional UI ---
     const isVoiceReady = process.env.NEXT_PUBLIC_PREMIUM_VOICE_ENABLED === 'true' || !!selectedVoice;
 
     if (!sessionActive) {
@@ -164,7 +159,7 @@ export default function InterviewSessionPage() {
             <div className="max-w-4xl mx-auto p-8 flex flex-col items-center justify-center h-[calc(100vh-65px)] text-center">
                 <div className="bg-gray-800 p-8 rounded-xl border border-gray-700 w-full max-w-lg">
                     <h1 className="text-3xl font-poppins font-bold text-white mb-4">Mock Interview Ready</h1>
-                    <p className="text-gray-400 mb-6">Your AI interviewer, Forge, is ready to begin. Select a voice and click start.</p>
+                    <p className="text-gray-400 mb-6">Your AI interviewer is ready. Select a voice and click start.</p>
                     <div className="mb-6 flex justify-center"><VoiceSelectionMenu /></div>
                     <button onClick={handleStartSession} disabled={!isVoiceReady} className="w-full flex items-center justify-center gap-3 px-12 py-4 bg-yellow-400 text-gray-900 font-bold rounded-lg text-xl disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed hover:bg-yellow-500 shadow-lg">
                         <PlayCircle /> Start Interview
@@ -174,7 +169,6 @@ export default function InterviewSessionPage() {
         );
     }
     
-    // --- Main Chat UI ---
     return (
         <div className="max-w-4xl mx-auto p-4 flex flex-col h-[calc(100vh-65px)]">
             <div className="flex justify-between items-center mb-4 flex-shrink-0">
