@@ -16,6 +16,7 @@ export default function InterviewSessionPage() {
     const [isThinking, setIsThinking] = useState(false);
     const [userInput, setUserInput] = useState('');
     const [sessionActive, setSessionActive] = useState(false);
+    const [lastSpokenMessageId, setLastSpokenMessageId] = useState<string>('');
     const router = useRouter();
     const chatContainerRef = useRef<HTMLDivElement>(null);
 
@@ -29,20 +30,23 @@ export default function InterviewSessionPage() {
     }, [speechToText]);
 
     const displayedInput = isListening ? (userInput.endsWith(' ') ? userInput : userInput + ' ') + interimText : userInput;
-    
-    // --- This effect now triggers the API call for the first question ---
-    useEffect(() => {
-        if (sessionActive && messages.length === 0) {
-            getInitialQuestion();
-        }
-    }, [sessionActive]); // Runs once when the session becomes active
 
     useEffect(() => {
+        if (messages.length === 0) {
+            startNewInterview(`Hello, ${resumeState.personal.name || 'there'}. Welcome to the forge. To start, could you please walk me through your resume?`);
+        }
+    }, [messages.length, resumeState.personal.name, startNewInterview]);
+
+    useEffect(() => {
+        if (!sessionActive) return;
         const lastMessage = messages[messages.length - 1];
-        if (lastMessage && lastMessage.sender === 'AI' && lastMessage.text && !isThinking) {
+        const messageId = `${lastMessage?.sender}-${messages.length - 1}-${lastMessage?.text?.length || 0}`;
+        
+        if (lastMessage && lastMessage.sender === 'AI' && lastMessage.text && !isThinking && messageId !== lastSpokenMessageId && lastMessage.text.trim().length > 0) {
+            setLastSpokenMessageId(messageId);
             speak(lastMessage.text);
         }
-    }, [messages, isThinking, speak]);
+    }, [messages, sessionActive, isThinking, speak, lastSpokenMessageId]);
 
     useEffect(() => {
         const lastMessage = messages[messages.length - 1];
@@ -58,84 +62,15 @@ export default function InterviewSessionPage() {
     }, [messages, isThinking]);
 
     // --- Handlers ---
-    
     const handleStartSession = () => {
-        clearInterviewState(); // Clear old messages before starting
         setSessionActive(true);
-    };
-
-    const clearInterviewState = () => {
-        useInterviewStore.getState().clearInterview();
-    };
-
-    const sendApiRequest = async (conversationHistory: Message[]) => {
-        setIsThinking(true);
-        addMessage({ sender: 'AI', text: '' });
-        
-        try {
-            const response = await fetch('/api/interview', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    resumeData: { name: resumeState.personal.name, experience: resumeState.experience, skills: resumeState.skills },
-                    conversationHistory,
-                    stage: stage,
-                }),
-            });
-
-            if (!response.ok || !response.body) throw new Error(`Server error`);
-
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            let accumulatedText = '';
-            
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                
-                const chunk = decoder.decode(value, { stream: true });
-                const lines = chunk.split('\n');
-                for (const line of lines) {
-                    if (line.startsWith('0:')) {
-                        try {
-                            const jsonStr = line.substring(2);
-                            const parsed = JSON.parse(jsonStr);
-                            if (parsed && typeof parsed === 'string') {
-                                accumulatedText += parsed;
-                            }
-                        } catch (e) { continue; }
-                    }
-                }
-                
-                useInterviewStore.setState(state => {
-                    const lastMessage = state.messages[state.messages.length - 1];
-                    if (lastMessage?.sender === 'AI') {
-                        return { messages: [...state.messages.slice(0, -1), { ...lastMessage, text: accumulatedText }] };
-                    }
-                    return state;
-                });
-            }
-        } catch (error) {
-            console.error("API stream failed:", error);
-            useInterviewStore.setState(state => {
-                const lastMessage = state.messages[state.messages.length - 1];
-                if (lastMessage?.sender === 'AI') {
-                    const updatedMessage = { ...lastMessage, text: "Sorry, I encountered a connection issue. Please try again." };
-                    return { messages: [...state.messages.slice(0, -1), updatedMessage] };
-                }
-                return state;
-            });
-        } finally {
-            setIsThinking(false);
+        const firstMessage = messages[0];
+        if (firstMessage && firstMessage.text) {
+            speak(firstMessage.text);
         }
     };
 
-    const getInitialQuestion = () => {
-        // We send an empty conversation history to get the first question
-        sendApiRequest([]); 
-    };
-
-    const handleSubmitAnswer = () => {
+    const handleSubmitAnswer = async () => {
         const currentInput = displayedInput.trim();
         if (!currentInput || isThinking) return;
 
@@ -145,21 +80,88 @@ export default function InterviewSessionPage() {
         const userMessage: Message = { sender: 'user', text: currentInput };
         addMessage(userMessage);
         setUserInput('');
-        
-        // We now call our unified API request function
-        sendApiRequest([...messages, userMessage]);
+        setIsThinking(true);
+        addMessage({ sender: 'AI', text: '' });
+
+        try {
+            const response = await fetch('/api/interview', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    resumeData: { name: resumeState.personal.name, experience: resumeState.experience, skills: resumeState.skills },
+                    conversationHistory: [...messages, userMessage],
+                    stage: stage,
+                }),
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Server error: ${response.status} - ${errorText || 'No error body'}`);
+            }
+            if (!response.body) {
+                throw new Error(`The server returned an empty response.`);
+            }
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                
+                const chunk = decoder.decode(value);
+                
+                useInterviewStore.setState(state => {
+                    const lastMessage = state.messages[state.messages.length - 1];
+                    if (lastMessage?.sender === 'AI') {
+                        const updatedMessage = { ...lastMessage, text: lastMessage.text + chunk };
+                        const newMessages = [...state.messages.slice(0, -1), updatedMessage];
+                        return { messages: newMessages };
+                    }
+                    return state;
+                });
+            }
+        } catch (error) {
+            console.error("API stream failed:", error);
+            useInterviewStore.setState(state => {
+                const lastMessage = state.messages[state.messages.length - 1];
+                if (lastMessage?.sender === 'AI') {
+                    const updatedMessage = { ...lastMessage, text: `Sorry, I encountered a connection issue: ${(error as Error).message}` };
+                    const newMessages = [...state.messages.slice(0, -1), updatedMessage];
+                    return { messages: newMessages };
+                }
+                return state;
+            });
+        } finally {
+            setIsThinking(false);
+        }
     };
 
-    const handleFinishInterview = async () => { /* ... Your working function ... */ };
+    const handleFinishInterview = async () => {
+        if (isThinking) return;
+        setIsThinking(true);
+        try {
+            const analysisResponse = await fetch('/api/analyze-interview', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ transcript: messages }) });
+            const analysisData = await analysisResponse.json();
+            if (!analysisResponse.ok) throw new Error(analysisData.error || "Failed to generate analysis.");
+            const saveResponse = await fetch('/api/save-interview', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ transcript: messages, overall_feedback: analysisData.overall_feedback }) });
+            const saveData = await saveResponse.json();
+            if (!saveResponse.ok) throw new Error(saveData.error || "Failed to save interview.");
+            router.push(`/interview/analytics/${saveData.interview_id}`);
+        } catch (error) {
+            alert(`Failed to finish interview: ${(error as Error).message}`);
+            setIsThinking(false);
+        }
+    };
 
-    const isVoiceReady = process.env.NEXT_PUBLIC_PREMIUM_VOICE_ENABLED === 'true' || !!selectedVoice;
+    const isVoiceReady = (process.env.NEXT_PUBLIC_PREMIUM_VOICE_ENABLED === 'true' && !!selectedPersonaId) || (!(process.env.NEXT_PUBLIC_PREMIUM_VOICE_ENABLED === 'true') && !!selectedVoice);
 
     if (!sessionActive) {
         return (
             <div className="max-w-4xl mx-auto p-8 flex flex-col items-center justify-center h-[calc(100vh-65px)] text-center">
                 <div className="bg-gray-800 p-8 rounded-xl border border-gray-700 w-full max-w-lg">
                     <h1 className="text-3xl font-poppins font-bold text-white mb-4">Mock Interview Ready</h1>
-                    <p className="text-gray-400 mb-6">Your AI interviewer is ready. Select a voice and click start.</p>
+                    <p className="text-gray-400 mb-6">Your AI interviewer is ready to begin. Select your preferred voice and click start.</p>
                     <div className="mb-6 flex justify-center"><VoiceSelectionMenu /></div>
                     <button onClick={handleStartSession} disabled={!isVoiceReady} className="w-full flex items-center justify-center gap-3 px-12 py-4 bg-yellow-400 text-gray-900 font-bold rounded-lg text-xl disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed hover:bg-yellow-500 shadow-lg">
                         <PlayCircle /> Start Interview

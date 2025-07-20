@@ -1,22 +1,28 @@
+// src/app/api/interview/route.ts – SDK-only version, no 'ai/google'
+
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-export const runtime = 'edge'; // for Next.js Edge API compatibility
+export const runtime = 'edge'; // Enable Next.js Edge Runtime
 
-// Initialize the Gemini model client
+// Initialize Gemini client with your API key
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
-// Basic stream wrapper for plain text
-function streamText(response: AsyncIterable<any>) {
+// Convert Gemini's stream result into a ReadableStream suitable for streaming in Edge Functions
+function createReadableStream(response: AsyncIterable<any>): ReadableStream {
   const encoder = new TextEncoder();
 
   return new ReadableStream({
     async start(controller) {
-      for await (const chunk of response) {
-        // Some SDK versions use chunk.text, or chunk.parts[].text
-        const text = chunk.text ?? chunk.parts?.map((p: { text: any; }) => p.text).join('') ?? '';
-        controller.enqueue(encoder.encode(text));
+      try {
+        for await (const chunk of response) {
+          const text = chunk.text ?? chunk.parts?.map((p: { text: any; }) => p.text).join('') ?? '';
+          controller.enqueue(encoder.encode(text));
+        }
+        controller.close();
+      } catch (e) {
+        console.error('[STREAM_ERROR]', e);
+        controller.error(e);
       }
-      controller.close();
     },
   });
 }
@@ -25,10 +31,9 @@ export async function POST(req: Request) {
   try {
     const { resumeData = {}, conversationHistory = [], stage = 'Behavioral' } = await req.json();
 
-    // Utility: returns system prompt based on the interview stage
+    // Generate the appropriate system instruction based on the interview stage
     const getSystemInstruction = (currentStage: string): string => {
       let stageInstruction = '';
-
       switch (currentStage) {
         case 'Technical':
           stageInstruction = `
@@ -38,7 +43,6 @@ export async function POST(req: Request) {
             - If the resume mentions specific projects, ask for detailed architectural discussions about them.
             - Your feedback should critique the technical accuracy, depth, and clarity of the user's explanation.`;
           break;
-
         case 'Situational':
           stageInstruction = `
             You are now an experienced HR Manager. Your focus is 100% on situational and company-fit questions.
@@ -46,7 +50,6 @@ export async function POST(req: Request) {
             - Present situational challenges like: "Describe a time you had a conflict with a colleague. How did you resolve it?", "How would you handle a situation where you strongly disagree with your manager's decision?".
             - Your feedback should evaluate the user's professionalism, strategic thinking, and communication skills.`;
           break;
-
         case 'Behavioral':
         default:
           stageInstruction = `
@@ -57,25 +60,29 @@ export async function POST(req: Request) {
           break;
       }
 
-      return `You are "Forge", a world-class AI mock interviewer who adapts based on the stage of the interview.
+      return `
+        You are "Forge," a world-class AI mock interviewer. You will adopt a specific persona based on the interview stage.
 
-      **CURRENT STAGE**: ${currentStage}
+        **CURRENT STAGE**: ${currentStage}
 
-      **YOUR STRICT TASK**: Follow the persona for this stage and ask one relevant question at a time, analyze the user's resume and conversation history, provide expert feedback based on their answer, and proceed to the next question — all aligned with the current interview type.
-
-      ${stageInstruction}
-
-      **RULES**:
-      - Ask ONLY ONE question at a time.
-      - Respond naturally as plain text. Do not use JSON or markdown.`;
+        **YOUR STRICT TASK**: Adhere strictly to the persona and instructions for the current stage. Analyze the user's resume and conversation to ask a relevant question. After the user answers, provide concise, expert feedback, then ask the next question for this stage.
+        
+        ${stageInstruction}
+        
+        **RULES**:
+        - Ask ONLY ONE question at a time.
+        - Respond naturally as plain text. Do not use JSON or markdown.
+      `;
     };
 
     const systemInstruction = getSystemInstruction(stage);
 
+    // Convert conversation history into a readable prompt section
     const historyForPrompt = conversationHistory
       .map((msg: { sender: string; text: string }) => `${msg.sender.toUpperCase()}: ${msg.text}`)
       .join('\n');
 
+    // Final prompt sent to the model
     const prompt = `
       ${systemInstruction}
       ---
@@ -87,24 +94,25 @@ export async function POST(req: Request) {
       FORGE'S NEXT RESPONSE:
     `;
 
-    // Get the Gemini model
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash-latest',
-    });
+    console.log(`Sending prompt to Gemini for stage: ${stage}`);
 
-    // Stream Gemini content response
-    const generation = await model.generateContentStream({
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
+
+    const result = await model.generateContentStream({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
     });
 
-    // ✅ Use generation.stream — this is the proper AsyncIterable output
-    return new Response(streamText(generation.stream), {
+    console.log('Successfully initiated stream from Gemini.');
+
+    // 🔁 Return a streaming text/plain response
+    return new Response(createReadableStream(result.stream), {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
       },
     });
+
   } catch (error) {
-    console.error('🔴 Error in mock interview API:', error);
-    return new Response('Internal Server Error', { status: 500 });
+    console.error('[INTERVIEW_API_ERROR]', error);
+    return new Response('An error occurred while processing your request.', { status: 500 });
   }
 }
