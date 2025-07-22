@@ -63,7 +63,7 @@ export const useSpeechSynthesis = (): SpeechHook => {
         if ('speechSynthesis' in window && selectedVoice && typeof selectedVoice === 'object' && 'voice' in selectedVoice) {
             setIsLoading(false); // No loading for native
             const utterance = new SpeechSynthesisUtterance(text);
-            utterance.voice = selectedVoice;
+            utterance.voice = selectedVoice.voice;
             utterance.rate = 0.9;
             utterance.onstart = () => setIsSpeaking(true);
             utterance.onend = () => setIsSpeaking(false);

@@ -1,22 +1,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-// We need this hook to get the list of NATIVE browser voices.
-import { useNativeSpeechSynthesis } from '@/hooks/useNativeSpeechSynthesis'; 
-// =================================================================
-// THE DEFINITIVE FIX IS HERE:
-// We import `AppVoice` from the store, its single source of truth.
-// =================================================================
-import { useInterviewStore, type AppVoice } from '@/store/interviewStore';
+import { useNativeSpeechSynthesis } from '@/hooks/useNativeSpeechSynthesis';
+import { useInterviewStore } from '@/store/interviewStore';
 import { UserCog, Check } from 'lucide-react';
 
 export const VoiceSelectionMenu = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     
-    // This hook correctly provides the list of available browser voices.
+    // This hook provides the list of native browser voices.
     const { voices, supported: ttsSupported } = useNativeSpeechSynthesis();
     
-    // We get the selected native voice and the setter from our global store.
+    // The correct, performant way to get state and actions from the store.
     const { selectedVoice, setSelectedVoice } = useInterviewStore(state => ({
         selectedVoice: state.selectedVoice,
         setSelectedVoice: state.setSelectedVoice,
@@ -30,8 +25,8 @@ export const VoiceSelectionMenu = () => {
         }
     }, [voices, selectedVoice, setSelectedVoice]);
 
-    // The VoiceSelectionMenu now controls the FALLBACK native voice.
-    // The premium voice is chosen automatically by the backend.
+    // The VoiceSelectionMenu is now correctly understood to control the FALLBACK native voice.
+    // The premium voice is handled separately.
     if (!ttsSupported) {
         return null;
     }
