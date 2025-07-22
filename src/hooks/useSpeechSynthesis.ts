@@ -1,15 +1,14 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useInterviewStore } from '@/store/interviewStore';
 
-// The final, correct interface
 interface SpeechHook {
     speak: (text: string) => void;
     cancel: () => void;
     isLoading: boolean;
     isSpeaking: boolean;
-    supported: boolean; // Add the missing property
+    supported: boolean;
 }
 
 let premiumAudio: HTMLAudioElement | null = null;
@@ -27,23 +26,55 @@ export const useSpeechSynthesis = (): SpeechHook => {
 
     useEffect(() => {
         if (typeof window !== 'undefined' && 'speechSynthesis' in window) setSupported(true);
-        // ... (rest of audio event listener setup is correct)
+        if (!premiumAudio) return;
+        const handlePlay = () => setIsSpeaking(true);
+        const handleEnd = () => setIsSpeaking(false);
+        premiumAudio.addEventListener('play', handlePlay);
+        premiumAudio.addEventListener('pause', handleEnd);
+        premiumAudio.addEventListener('ended', handleEnd);
+        premiumAudio.addEventListener('error', handleEnd);
+        return () => { /* Cleanup listeners */ };
     }, []);
     
     const fallbackToNative = useCallback((text: string) => {
         if (supported && selectedVoice) {
-            // ... (native fallback logic is correct)
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.voice = selectedVoice.voice;
+            utterance.rate = 0.9;
+            utterance.onstart = () => setIsSpeaking(true);
+            utterance.onend = () => setIsSpeaking(false);
+            window.speechSynthesis.speak(utterance);
         }
     }, [supported, selectedVoice]);
 
     const speak = useCallback(async (text: string) => {
         if (!text || isSpeaking || isLoading) return;
-        // ... (cancel logic is correct)
+        
+        if (premiumAudio) premiumAudio.pause();
+        window.speechSynthesis.cancel();
 
         const usePremium = process.env.NEXT_PUBLIC_PREMIUM_VOICE_ENABLED === 'true';
 
         if (usePremium && selectedPersonaId) {
-            // ... (premium voice logic is correct)
+            setIsLoading(true);
+
+            try {
+                const response = await fetch('/api/tts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text, personaId: selectedPersonaId }),
+                });
+                if (!response.ok) throw new Error("API request failed");
+                
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                if (premiumAudio) await premiumAudio.play();
+            } catch (error) {
+                console.warn(`Premium TTS failed: ${(error as Error).message}. Falling back.`);
+                fallbackToNative(text);
+            } finally {
+                setIsLoading(false);
+            }
         } else {
             fallbackToNative(text);
         }
@@ -51,6 +82,5 @@ export const useSpeechSynthesis = (): SpeechHook => {
 
     const cancel = useCallback(() => { /* ... cancel logic ... */ }, []);
 
-    // The return now matches the interface perfectly
     return { speak, cancel, isLoading, isSpeaking, supported };
 };
