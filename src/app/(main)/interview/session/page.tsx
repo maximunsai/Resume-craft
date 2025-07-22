@@ -5,20 +5,20 @@ import { useRouter } from 'next/navigation';
 import { useResumeStore } from '@/store/resumeStore';
 import { useInterviewStore, Message } from '@/store/interviewStore';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
-import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
+import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis'; 
 import { VoiceSelectionMenu } from '@/components/VoiceSelectionMenu';
 import { Bot, User, Send, Mic, MicOff, Volume2, StopCircle, Flag, PlayCircle } from 'lucide-react';
 
 export default function InterviewSessionPage() {
     // --- Store and State Hooks ---
-    const { messages, addMessage, startNewInterview, selectedPersonaId, selectedVoice, stage, setStage } = useInterviewStore();
+    const { messages, addMessage, startNewInterview, selectedVoice, stage, setStage, selectedPersonaId } = useInterviewStore();
     const resumeState = useResumeStore();
     const [isThinking, setIsThinking] = useState(false);
     const [userInput, setUserInput] = useState('');
     const [sessionActive, setSessionActive] = useState(false);
-    const [lastSpokenMessageId, setLastSpokenMessageId] = useState<string>('');
-    const router = useRouter();
+    const [lastSpokenMessageIndex, setLastSpokenMessageIndex] = useState<number | null>(null);
     const chatContainerRef = useRef<HTMLDivElement>(null);
+    const router = useRouter();
 
     // --- Voice Hooks ---
     const { text: speechToText, interimText, isListening, startListening, stopListening, hasRecognitionSupport } = useSpeechRecognition();
@@ -37,22 +37,22 @@ export default function InterviewSessionPage() {
         }
     }, [messages.length, resumeState.personal.name, startNewInterview]);
 
+    // This effect handles speaking and prevents looping
     useEffect(() => {
         if (!sessionActive) return;
-        const lastMessage = messages[messages.length - 1];
-        const messageId = `${lastMessage?.sender}-${messages.length - 1}-${lastMessage?.text?.length || 0}`;
+        const lastMessageIndex = messages.length - 1;
+        const lastMessage = messages[lastMessageIndex];
         
-        if (lastMessage && 
-            lastMessage.sender === 'AI' && 
-            lastMessage.text && 
-            !isThinking && 
-            messageId !== lastSpokenMessageId &&
-            lastMessage.text.trim().length > 0) {
-            setLastSpokenMessageId(messageId);
-            speak(lastMessage.text);
+        if (lastMessage && lastMessage.sender === 'AI' && lastMessage.text && !isThinking && lastSpokenMessageIndex !== lastMessageIndex) {
+            const lowerCaseText = lastMessage.text.toLowerCase();
+            if (!lowerCaseText.includes("technical round") && !lowerCaseText.includes("hr and situational")) {
+                speak(lastMessage.text);
+            }
+            setLastSpokenMessageIndex(lastMessageIndex);
         }
-    }, [messages, sessionActive, isThinking, speak, lastSpokenMessageId]);
+    }, [messages, sessionActive, isThinking, speak, lastSpokenMessageIndex]);
 
+    // This effect handles stage transitions
     useEffect(() => {
         const lastMessage = messages[messages.length - 1];
         if (lastMessage && lastMessage.sender === 'AI' && lastMessage.text) {
@@ -75,11 +75,14 @@ export default function InterviewSessionPage() {
         }
     };
 
+    // =================================================================
+    // THIS IS THE DEFINITIVELY CORRECTED FUNCTION
+    // =================================================================
     const handleSubmitAnswer = async () => {
         const currentInput = displayedInput.trim();
         if (!currentInput || isThinking) return;
 
-        cancelSpeech();
+        if (isSpeaking) cancelSpeech();
         if (isListening) stopListening();
 
         const userMessage: Message = { sender: 'user', text: currentInput };
@@ -89,17 +92,22 @@ export default function InterviewSessionPage() {
         addMessage({ sender: 'AI', text: '' });
 
         try {
+            // FIX 1: Get the LATEST stage from the store right before the API call.
+            const currentStage = useInterviewStore.getState().stage;
+
             const response = await fetch('/api/interview', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     resumeData: { name: resumeState.personal.name, experience: resumeState.experience, skills: resumeState.skills },
                     conversationHistory: [...messages, userMessage],
-                    stage: stage,
+                    stage: currentStage, // Pass the correct, up-to-date stage
                 }),
             });
 
-            if (!response.ok || !response.body) throw new Error(`Server error`);
+            if (!response.ok || !response.body) {
+                throw new Error(`Server error: ${response.status} ${response.statusText}`);
+            }
 
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
@@ -110,27 +118,12 @@ export default function InterviewSessionPage() {
                 if (done) break;
                 
                 const chunk = decoder.decode(value, { stream: true });
+                accumulatedText += chunk;
                 
-                // Parse the streaming data correctly
-                const lines = chunk.split('\n');
-                for (const line of lines) {
-                    if (line.startsWith('0:')) {
-                        try {
-                            const jsonStr = line.substring(2);
-                            const parsed = JSON.parse(jsonStr);
-                            if (parsed && typeof parsed === 'string') {
-                                accumulatedText += parsed;
-                            }
-                        } catch (e) {
-                            // Skip invalid JSON lines
-                            continue;
-                        }
-                    }
-                }
-                
+                // FIX 2: Use a proper immutable update for the streaming text.
                 useInterviewStore.setState(state => {
                     const lastMessage = state.messages[state.messages.length - 1];
-                    if (lastMessage?.sender === 'AI') {
+                    if (lastMessage && lastMessage.sender === 'AI') {
                         const updatedMessage = { ...lastMessage, text: accumulatedText };
                         const newMessages = [...state.messages.slice(0, -1), updatedMessage];
                         return { messages: newMessages };
@@ -138,12 +131,14 @@ export default function InterviewSessionPage() {
                     return state;
                 });
             }
+
         } catch (error) {
-            console.error("API stream failed:", error);
+            const errorMessage = error instanceof Error ? error.message : "An unknown connection error occurred.";
+            console.error("Failed to get response from interview API:", error);
             useInterviewStore.setState(state => {
                 const lastMessage = state.messages[state.messages.length - 1];
-                if (lastMessage?.sender === 'AI') {
-                    const updatedMessage = { ...lastMessage, text: "Sorry, I encountered a connection issue. Please try again." };
+                if (lastMessage && lastMessage.sender === 'AI') {
+                    const updatedMessage = { ...lastMessage, text: `Sorry, a technical issue occurred: ${errorMessage}` };
                     const newMessages = [...state.messages.slice(0, -1), updatedMessage];
                     return { messages: newMessages };
                 }
@@ -155,9 +150,9 @@ export default function InterviewSessionPage() {
     };
 
     const handleFinishInterview = async () => { /* ... Your working function ... */ };
-
-    // --- Conditional UI ---
-    const isVoiceReady = process.env.NEXT_PUBLIC_PREMIUM_VOICE_ENABLED === 'true' || !!selectedVoice;
+    
+    // --- UI (Preserved from your working version) ---
+    const isVoiceReady = (process.env.NEXT_PUBLIC_PREMIUM_VOICE_ENABLED === 'true' && !!selectedPersonaId) || (!(process.env.NEXT_PUBLIC_PREMIUM_VOICE_ENABLED === 'true') && !!selectedVoice);
 
     if (!sessionActive) {
         return (
@@ -174,7 +169,6 @@ export default function InterviewSessionPage() {
         );
     }
     
-    // --- Main Chat UI ---
     return (
         <div className="max-w-4xl mx-auto p-4 flex flex-col h-[calc(100vh-65px)]">
             <div className="flex justify-between items-center mb-4 flex-shrink-0">

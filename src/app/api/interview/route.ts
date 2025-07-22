@@ -1,140 +1,86 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Initialize the client
+export const runtime = 'edge';
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
-export const runtime = 'edge';
+function createReadableStream(responseStream: AsyncIterable<any>): ReadableStream {
+  const encoder = new TextEncoder();
+  return new ReadableStream({
+    async start(controller) {
+      try {
+        for await (const chunk of responseStream) {
+          const text = chunk.text();
+          if (text) controller.enqueue(encoder.encode(text));
+        }
+        controller.close();
+      } catch (e) {
+        console.error('[STREAM_ERROR]', e);
+        controller.error(e);
+      }
+    },
+  });
+}
 
 export async function POST(req: Request) {
   try {
     const { resumeData = {}, conversationHistory = [], stage = 'Behavioral' } = await req.json();
 
-    const getSystemInstruction = (currentStage: string) => {
-        let stageInstruction = '';
-        
-        switch (currentStage) {
-            case 'Behavioral':
-                stageInstruction = `Focus on behavioral questions that assess soft skills, teamwork, leadership, problem-solving approach, and cultural fit. Ask about past experiences and how they handled specific situations.`;
-                break;
-            case 'Technical':
-                stageInstruction = `Focus on technical questions relevant to the candidate's field. Test their knowledge of programming languages, frameworks, system design, algorithms, and technical problem-solving.`;
-                break;
-            case 'Case Study':
-                stageInstruction = `Present real-world scenarios or business cases. Evaluate analytical thinking, problem-solving methodology, and practical application of skills.`;
-                break;
-            default:
-                stageInstruction = `Conduct a comprehensive interview covering various aspects of the candidate's qualifications.`;
-        }
-        
-        return `You are "Forge," a world-class AI mock interviewer with expertise in conducting professional interviews across all industries and roles.
+    const getSystemInstruction = (currentStage: string, userResume: any): string => {
+      let stageFocus = '';
+      let transitionCue = '';
 
-CORE IDENTITY:
-- Experienced, empathetic, and insightful interviewer
-- Help candidates improve through realistic practice
-- Professional yet approachable tone
-- Provide constructive feedback and guidance
+      switch (currentStage) {
+        case 'Technical':
+          stageFocus = `Your focus is 100% technical. Ask deep, resume-based technical questions about skills like '${userResume.skills}'. Present system design challenges related to their experience at '${userResume.experience?.[0]?.company}'. Your feedback must critique technical accuracy and depth.`;
+          transitionCue = `After 6-8 questions, your final response MUST be ONLY this exact phrase: "That concludes the technical assessment. Are you ready for the final HR and situational round?"`;
+          break;
+        case 'Situational':
+          stageFocus = `Your focus is 100% on HR and situational questions. Ask about salary expectations, team conflicts, career goals, and "Why should we hire you?". Your feedback must evaluate professionalism and strategic thinking.`;
+          transitionCue = `After 4-6 questions, your final response MUST be ONLY this exact phrase: "This concludes our interview. Thank you for your time. The session will now end."`;
+          break;
+        case 'Behavioral':
+        default:
+          stageFocus = `Your focus is 100% behavioral. Ask questions that prompt STAR-method answers (Situation, Task, Action, Result) like "Tell me about a challenging project." Do not ask technical or HR questions. Your feedback must critique the user's storytelling structure.`;
+          transitionCue = `After 5-7 questions, your final response MUST be ONLY this exact phrase: "Great, that covers the behavioral questions. Are you ready to move on to the technical round?"`;
+          break;
+      }
 
-CURRENT INTERVIEW STAGE: ${currentStage}
-STAGE FOCUS: ${stageInstruction}
+      return `You are "Forge," a world-class AI interview conductor from India. Your tone is professional, clear, and direct.
 
-INTERVIEW GUIDELINES:
-1. Ask ONE question at a time
-2. Follow up with clarifying questions when appropriate
-3. Provide encouraging feedback
-4. Guide elaboration if answers are incomplete
-5. Keep questions relevant to resume
-6. Maintain natural conversation flow
-7. Be supportive yet professional
+      **YOUR PRIME DIRECTIVE:** You are conducting a multi-stage interview. You must strictly adhere to the current stage. After the user's answer, provide 1-2 sentences of concise feedback, then ask the next question for the current stage.
 
-RESPONSE FORMAT:
-- Keep responses concise (2-3 sentences max)
-- Ask clear, specific questions
-- Brief positive reinforcement when appropriate
-- Conversational, professional tone
+      **CURRENT STAGE**: ${currentStage}.
+      **STAGE FOCUS**: ${stageFocus}
+      **TRANSITION CUE**: ${transitionCue}
 
-Remember: This is practice to help candidates improve. Be constructive and encouraging.
-
-Candidate Resume Context: ${JSON.stringify(resumeData, null, 2)}`;
+      **STRICT RULES**:
+      1.  Ask ONLY ONE question at a time.
+      2.  Analyze the full CONVERSATION_HISTORY to avoid repeating questions and to ask relevant follow-ups.
+      3.  Your entire response must be plain text. No JSON or markdown.`;
     };
-    
-    console.log(`Processing interview request for stage: ${stage}`);
 
-    // Convert conversation to Gemini format
-    const geminiMessages = conversationHistory.map((msg: { sender: string; text: string; }) => ({
-      role: msg.sender === 'AI' ? 'model' : 'user',
-      parts: [{ text: msg.text }]
-    }));
+    const systemInstruction = getSystemInstruction(stage, resumeData);
+    const historyForPrompt = conversationHistory.map((msg: { sender: string; text: string }) => `${msg.sender.toUpperCase()}: ${msg.text}`).join('\n');
 
-    // Add system instruction as first user message
-    const allMessages = [
-      {
-        role: 'user',
-        parts: [{ text: getSystemInstruction(stage) }]
-      },
-      ...geminiMessages
-    ];
+    const prompt = `
+      ${systemInstruction}
+      ---
+      CANDIDATE'S RESUME: ${JSON.stringify(resumeData)}
+      ---
+      CONVERSATION HISTORY:
+      ${historyForPrompt}
+      ---
+      YOUR_NEXT_RESPONSE:
+    `;
 
-    const model = genAI.getGenerativeModel({ 
-      model: 'gemini-1.5-flash-latest',
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 500,
-      }
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
+    const result = await model.generateContentStream({ contents: [{ role: 'user', parts: [{ text: prompt }] }] });
+
+    return new Response(createReadableStream(result.stream), {
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
     });
-
-    const result = await model.generateContentStream({
-      contents: allMessages
-    });
-      
-    console.log("Successfully initiated stream from Gemini.");
-
-    // Create a custom streaming response
-    const encoder = new TextEncoder();
-    
-    const stream = new ReadableStream({
-      async start(controller) {
-        try {
-          for await (const chunk of result.stream) {
-            const chunkText = chunk.text();
-            if (chunkText) {
-              // Format as AI SDK compatible stream
-              const formattedChunk = `0:"${chunkText.replace(/"/g, '\\"')}"\n`;
-              controller.enqueue(encoder.encode(formattedChunk));
-            }
-          }
-          controller.close();
-        } catch (error) {
-          console.error('Stream error:', error);
-          controller.error(error);
-        }
-      }
-    });
-
-    return new Response(stream, {
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-      },
-    });
-
   } catch (error) {
     console.error('[INTERVIEW_API_ERROR]', error);
-    
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    
-    return new Response(
-      JSON.stringify({ 
-        error: 'Failed to process interview request', 
-        details: errorMessage,
-        timestamp: new Date().toISOString()
-      }), 
-      { 
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      }
-    );
+    return new Response('An error occurred.', { status: 500 });
   }
 }
