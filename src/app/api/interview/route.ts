@@ -79,6 +79,7 @@ export async function POST(req: Request) {
     return new Response(createReadableStream(result.stream), {
       headers: { 'Content-Type': 'text/plain; charset=utf-8' },
     });
+
   } catch (error) {
     console.error('[INTERVIEW_API_ERROR]', error);
     return new Response('An error occurred.', { status: 500 });
