@@ -1,7 +1,8 @@
 // src/components/pdf-templates/CorporatePDF.tsx
 
 import { Document, Page, Text, View, StyleSheet, Font, Link } from '@react-pdf/renderer';
-import type { ResumeData } from '../PDFDownloader';
+// import type { ResumeData } from '../PDFDownloader';
+import type { ResumeData } from '@/types/resume';
 
 // Using a very standard and readable font like Arial/Helvetica
 Font.register({ family: 'Helvetica', fonts: [

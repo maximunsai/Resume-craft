@@ -8,8 +8,7 @@ import type { ResumeData } from '@/types/resume';
 // --- Import ALL 17 of your live preview template components ---
 import { Modernist } from '@/components/templates/Modernist';
 import { Classic } from '@/components/templates/Classic';
-import { Executive } from '@/components/templates/Executive';
-// ... import all the rest, down to Cosmopolitan ...
+// ... import all the rest
 import { Cosmopolitan } from '@/components/templates/Cosmopolitan';
 import { Academic } from '@/components/templates/Academic';
 import { Apex } from '@/components/templates/Apex';
@@ -17,6 +16,7 @@ import { Cascade } from '@/components/templates/Cascade';
 import { Corporate } from '@/components/templates/Corporate';
 import { Creative } from '@/components/templates/Creative';
 import { Elegant } from '@/components/templates/Elegant';
+import { Executive } from '@/components/templates/Executive';
 import { Metro } from '@/components/templates/Metro';
 import { Minimalist } from '@/components/templates/Minimalist';
 import { Onyx } from '@/components/templates/Onyx';
@@ -25,22 +25,20 @@ import { Simple } from '@/components/templates/Simple';
 import { Technical } from '@/components/templates/Technical';
 import { Bold } from 'lucide-react';
 
-// Dynamically import the PDFDownloader to avoid server-side rendering issues
 const PDFDownloader = dynamic(
   () => import('@/components/PDFDownloader'),
   { ssr: false }
 );
 
-// This map MUST have lowercase keys that match your template IDs
 const templateMap = {
-    modernist: Modernist, classic: Classic, executive: Executive, minimalist: Minimalist,
-    creative: Creative, academic: Academic, technical: Technical, corporate: Corporate,
-    simple: Simple, bold: Bold, elegant: Elegant, apex: Apex, cascade: Cascade,
+    modernist: Modernist, classic: Classic, executive: Executive,
+    minimalist: Minimalist, creative: Creative, academic: Academic,
+    technical: Technical, corporate: Corporate, simple: Simple,
+    bold: Bold, elegant: Elegant, apex: Apex, cascade: Cascade,
     metro: Metro, pinnacle: Pinnacle, onyx: Onyx, cosmopolitan: Cosmopolitan,
 };
 
 export default function ReviewPage() {
-    // Select ALL necessary data from the Zustand store, including templateId
     const { personal, experience, aiGenerated, templateId } = useResumeStore();
     const router = useRouter();
 
@@ -49,32 +47,31 @@ export default function ReviewPage() {
         return <div className="text-center p-8 text-gray-400">Redirecting...</div>;
     }
     
-    // This logic correctly combines user data and AI data
+    // =================================================================
+    // THE DEFINITIVE FIX: A robust and correct data merging strategy.
+    // =================================================================
     const resumeData: ResumeData = { 
-        name: (personal.name || '') as string,
-        email:( personal.email || '') as string,
-        phone: (personal.phone || '') as string,
-        linkedin: (personal.linkedin || '') as string,
-        github: (personal.github || '') as string,
+        name: personal.name || '',
+        email: personal.email || '',
+        phone: personal.phone || '',
+        linkedin: personal.linkedin || '',
+        github: personal.github || '',
+        
         professionalSummary: aiGenerated.professionalSummary || '',
         technicalSkills: aiGenerated.technicalSkills || [],
-        detailedExperience: aiGenerated.detailedExperience.map((aiExp: { id: number; }) => {
-            const originalExp = experience.find(exp => exp.id === aiExp.id);
+
+        detailedExperience: experience.map(originalExp => {
+            // Find the corresponding experience object from the AI's response.
+            const aiExperienceData = aiGenerated.detailedExperience.find(aiExp => aiExp.id === originalExp.id);
+            
+            // Create the final, complete object.
             return {
-                ...aiExp,
-                // Ensure all fields from the original experience are preserved
-                startDate: originalExp?.startDate || '',
-                endDate: originalExp?.endDate || '',
-                description: originalExp?.description || '',
+                ...originalExp, // 1. Start with ALL properties from the original experience object.
+                points: aiExperienceData ? aiExperienceData.points : [originalExp.description], // 2. Overwrite `points` with the AI's version, or fallback to the original description.
             };
         })
     };
 
-    // =================================================================
-    // THE DEFINITIVE FIX - PART 1: Dynamic Component Selection
-    // This line reads the `templateId` from the store and selects the
-    // correct component from the map. The `|| Modernist` is a safe fallback.
-    // =================================================================
     const SelectedTemplateComponent = templateMap[templateId as keyof typeof templateMap] || Modernist;
 
     return (
@@ -85,13 +82,6 @@ export default function ReviewPage() {
             </div>
             
             <div className="mb-8 max-w-sm mx-auto">
-                {/* 
-                  =================================================================
-                  THE DEFINITIVE FIX - PART 2: Passing the templateId to the Downloader
-                  This `key={templateId}` is CRITICAL. It tells React to create a
-                  fresh instance of the downloader when the template changes.
-                  =================================================================
-                */}
                 <PDFDownloader 
                     resumeData={resumeData} 
                     templateId={templateId} 
@@ -100,7 +90,6 @@ export default function ReviewPage() {
             </div>
 
             <div className="p-8 md:p-12 bg-white shadow-2xl rounded-lg">
-                {/* Render the dynamically selected template for the live preview */}
                 <SelectedTemplateComponent data={resumeData} />
             </div>
         </div>

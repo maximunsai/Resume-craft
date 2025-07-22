@@ -1,7 +1,8 @@
 // src/components/pdf-templates/MinimalistPDF.tsx
 
 import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
-import type { ResumeData } from '../PDFDownloader';
+// import type { ResumeData } from '../PDFDownloader';
+import type { ResumeData } from '@/types/resume';
 
 // Register fonts - We'll use Helvetica for a clean, minimalist feel
 Font.register({

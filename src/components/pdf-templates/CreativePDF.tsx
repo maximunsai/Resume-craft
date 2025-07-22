@@ -1,7 +1,8 @@
 // src/components/pdf-templates/CreativePDF.tsx
 
 import { Document, Page, Text, View, StyleSheet, Font, Link } from '@react-pdf/renderer';
-import type { ResumeData } from '../PDFDownloader';
+// import type { ResumeData } from '../PDFDownloader';
+import type { ResumeData } from '@/types/resume';
 
 // Register Montserrat font with proper weights
 Font.register({

@@ -1,7 +1,8 @@
 // src/components/pdf-templates/ExecutivePDF.tsx - ROBUST VERSION
 
 import { Document, Page, Text, View, StyleSheet, Link } from '@react-pdf/renderer';
-import type { ResumeData } from '../PDFDownloader';
+// import type { ResumeData } from '../PDFDownloader';
+import type { ResumeData } from '@/types/resume';
 
 // Using built-in PDF fonts for reliability - no external font loading
 const styles = StyleSheet.create({

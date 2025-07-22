@@ -1,7 +1,8 @@
 // src/components/pdf-templates/ModernistPDF.tsx
 
 import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
-import type { ResumeData } from '../PDFDownloader'; // Import the shared type
+// import type { ResumeData } from '../PDFDownloader'; // Import the shared type
+import type { ResumeData } from '@/types/resume';
 
 // Register fonts
 Font.register({
