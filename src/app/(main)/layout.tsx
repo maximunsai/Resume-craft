@@ -7,18 +7,15 @@ import { useResumeStore } from '@/store/resumeStore';
 import { SignOutButton } from '@/components/SignOutButton';
 import Link from 'next/link';
 import { CheckCircle, Save } from 'lucide-react';
+import { FontProvider } from '@/components/FontProvider'; // <-- Import our new provider
 
-// =================================================================
-// THE DEFINITIVE FIX IS HERE: The complete and correct implementation
-// for the SaveStatusIndicator component. It now correctly returns JSX.
-// =================================================================
+// This component provides UI feedback for the database save status.
 const SaveStatusIndicator = () => {
     const isSaving = useResumeStore(state => state.isSaving);
     const [showSavedConfirmation, setShowSavedConfirmation] = useState(false);
 
     useEffect(() => {
         // This effect runs when the saving state changes.
-        // `isSaving` is true when saving starts, and false when it ends.
         const wasSaving = sessionStorage.getItem('wasSaving') === 'true';
 
         if (wasSaving && !isSaving) {
@@ -28,7 +25,6 @@ const SaveStatusIndicator = () => {
             return () => clearTimeout(timer);
         }
 
-        // Keep track of the previous state using sessionStorage.
         sessionStorage.setItem('wasSaving', isSaving ? 'true' : 'false');
     }, [isSaving]);
 
@@ -49,8 +45,7 @@ const SaveStatusIndicator = () => {
     );
 };
 
-
-// The main layout component is architecturally sound from the previous fix.
+// This is the main layout for the authenticated part of the application.
 export default function MainLayout({ children }: { children: React.ReactNode }) {
     const router = useRouter();
     const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -93,24 +88,30 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
             </div>
         );
     }
-
+    
+    // The FontProvider wraps the entire authenticated app to ensure
+    // all PDF fonts are registered before any PDF can be rendered.
     return (
-        <div className="min-h-screen">
-            <header className="bg-gray-900/95 backdrop-blur-sm border-b border-gray-700 sticky top-0 z-40">
-                <div className="container mx-auto py-3 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-                    <Link href="/builder" className="font-poppins font-bold text-xl text-white">ResumeCraft</Link>
-                    <nav className="hidden md:flex items-center space-x-8">
-                        <Link href="/builder" className="text-sm font-medium text-gray-300 hover:text-yellow-400">Resume Builder</Link>
-                        <Link href="/interview" className="text-sm font-medium text-gray-300 hover:text-yellow-400">Mock Interview</Link>
-                    </nav>
-                    <div className="flex items-center space-x-4">
-                         <SaveStatusIndicator />
-                        <span className="text-sm text-gray-400 hidden sm:block">{userEmail}</span>
-                        <SignOutButton />
+        <FontProvider>
+            <div className="min-h-screen">
+                <header className="bg-gray-900/95 backdrop-blur-sm border-b border-gray-700 sticky top-0 z-40">
+                    <div className="container mx-auto py-3 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
+                        <Link href="/builder" className="font-poppins font-bold text-xl text-white">ResumeCraft</Link>
+                        
+                        <nav className="hidden md:flex items-center space-x-8">
+                            <Link href="/builder" className="text-sm font-medium text-gray-300 hover:text-yellow-400">Resume Builder</Link>
+                            <Link href="/interview" className="text-sm font-medium text-gray-300 hover:text-yellow-400">Mock Interview</Link>
+                        </nav>
+
+                        <div className="flex items-center space-x-4">
+                            <SaveStatusIndicator />
+                            <span className="text-sm text-gray-400 hidden sm:block">{userEmail}</span>
+                            <SignOutButton />
+                        </div>
                     </div>
-                </div>
-            </header>
-            <main>{children}</main>
-        </div>
+                </header>
+                <main>{children}</main>
+            </div>
+        </FontProvider>
     );
 }
