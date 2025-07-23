@@ -4,6 +4,7 @@ import { create } from 'zustand';
 import { createClient } from '@/lib/supabase/client';
 import type { PersonalDetails, Experience, AiGeneratedContent } from '@/types/resume';
 
+
 // =======================================================
 // INTERFACE DEFINITIONS (The "Contract" for our store)
 // =======================================================

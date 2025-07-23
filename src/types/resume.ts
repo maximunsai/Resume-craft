@@ -1,4 +1,4 @@
-// This is the single source of truth for our main data structures.
+// src/types/resume.ts - THE SINGLE SOURCE OF TRUTH
 
 export interface PersonalDetails {
     name: string;
@@ -15,19 +15,26 @@ export interface Experience {
     startDate: string;
     endDate: string;
     description: string;
-    points?: string[]; // The AI-generated points are optional
+    points?: string[]; // The AI-generated points are optional on the base type
 }
 
 export interface AiGeneratedContent {
     professionalSummary: string;
     technicalSkills: string[];
-    detailedExperience: Array<{
-        title: string;
-        company: string; id: number; points: string[] 
-}>;
+    // The AI only generates `id` and `points` for each experience
+    detailedExperience: Array<{ id: number; points: string[] }>;
 }
 
-// This is the main interface we will be importing everywhere
-export type ResumeData = PersonalDetails & AiGeneratedContent & {
+// This is the FINAL, COMPLETE type for our data object, used for rendering.
+// It is the definitive "contract" that all components will use.
+export interface ResumeData {
+    name: string;
+    email: string;
+    phone: string;
+    linkedin: string;
+    github: string;
+    professionalSummary: string;
+    technicalSkills: string[];
+    // The final experience object will have all original data PLUS the AI points.
     detailedExperience: Experience[];
-};
+}

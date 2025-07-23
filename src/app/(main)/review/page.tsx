@@ -3,38 +3,34 @@
 import { useResumeStore } from '@/store/resumeStore';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
-import type { ResumeData } from '@/types/resume';
+// CORRECT IMPORT: Gets the single source of truth for the ResumeData type.
+import type { ResumeData, Experience } from '@/types/resume';
 
-// --- Import ALL 17 of your live preview template components ---
+// --- Import ALL of your live preview template components ---
 import { Modernist } from '@/components/templates/Modernist';
 import { Classic } from '@/components/templates/Classic';
-// ... import all the rest
-import { Cosmopolitan } from '@/components/templates/Cosmopolitan';
+import { Executive } from '@/components/templates/Executive';
+import { Minimalist } from '@/components/templates/Minimalist';
+import { Creative } from '@/components/templates/Creative';
 import { Academic } from '@/components/templates/Academic';
+import { Technical } from '@/components/templates/Technical';
+import { Corporate } from '@/components/templates/Corporate';
+import { Simple } from '@/components/templates/Simple';
+import { Bold } from '@/components/templates/Bold';
+import { Elegant } from '@/components/templates/Elegant';
 import { Apex } from '@/components/templates/Apex';
 import { Cascade } from '@/components/templates/Cascade';
-import { Corporate } from '@/components/templates/Corporate';
-import { Creative } from '@/components/templates/Creative';
-import { Elegant } from '@/components/templates/Elegant';
-import { Executive } from '@/components/templates/Executive';
 import { Metro } from '@/components/templates/Metro';
-import { Minimalist } from '@/components/templates/Minimalist';
-import { Onyx } from '@/components/templates/Onyx';
 import { Pinnacle } from '@/components/templates/Pinnacle';
-import { Simple } from '@/components/templates/Simple';
-import { Technical } from '@/components/templates/Technical';
-import { Bold } from 'lucide-react';
+import { Onyx } from '@/components/templates/Onyx';
+import { Cosmopolitan } from '@/components/templates/Cosmopolitan';
 
-const PDFDownloader = dynamic(
-  () => import('@/components/PDFDownloader'),
-  { ssr: false }
-);
+const PDFDownloader = dynamic(() => import('@/components/PDFDownloader'), { ssr: false });
 
 const templateMap = {
-    modernist: Modernist, classic: Classic, executive: Executive,
-    minimalist: Minimalist, creative: Creative, academic: Academic,
-    technical: Technical, corporate: Corporate, simple: Simple,
-    bold: Bold, elegant: Elegant, apex: Apex, cascade: Cascade,
+    modernist: Modernist, classic: Classic, executive: Executive, minimalist: Minimalist,
+    creative: Creative, academic: Academic, technical: Technical, corporate: Corporate,
+    simple: Simple, bold: Bold, elegant: Elegant, apex: Apex, cascade: Cascade,
     metro: Metro, pinnacle: Pinnacle, onyx: Onyx, cosmopolitan: Cosmopolitan,
 };
 
@@ -48,7 +44,8 @@ export default function ReviewPage() {
     }
     
     // =================================================================
-    // THE DEFINITIVE FIX: A robust and correct data merging strategy.
+    // THE DEFINITIVE FIX: This robust data merging strategy
+    // now correctly matches the final, complete ResumeData type.
     // =================================================================
     const resumeData: ResumeData = { 
         name: personal.name || '',
@@ -60,14 +57,12 @@ export default function ReviewPage() {
         professionalSummary: aiGenerated.professionalSummary || '',
         technicalSkills: aiGenerated.technicalSkills || [],
 
-        detailedExperience: experience.map(originalExp => {
-            // Find the corresponding experience object from the AI's response.
-            const aiExperienceData = aiGenerated.detailedExperience.find(aiExp => aiExp.id === originalExp.id);
-            
-            // Create the final, complete object.
+        // This is the key. We map over the original experience to preserve all its data.
+        detailedExperience: experience.map((originalExp): Experience => {
+            const aiDataForThisExp = aiGenerated.detailedExperience.find(aiExp => aiExp.id === originalExp.id);
             return {
-                ...originalExp, // 1. Start with ALL properties from the original experience object.
-                points: aiExperienceData ? aiExperienceData.points : [originalExp.description], // 2. Overwrite `points` with the AI's version, or fallback to the original description.
+                ...originalExp, // Preserves id, title, company, startDate, endDate, description
+                points: aiDataForThisExp ? aiDataForThisExp.points : [originalExp.description],
             };
         })
     };
@@ -80,7 +75,6 @@ export default function ReviewPage() {
                 <h1 className="text-4xl font-poppins font-bold text-white">Your Forged Resume is Ready</h1>
                 <p className="text-lg text-gray-400 mt-2">Review your masterpiece. If you're happy, download it.</p>
             </div>
-            
             <div className="mb-8 max-w-sm mx-auto">
                 <PDFDownloader 
                     resumeData={resumeData} 
@@ -88,7 +82,6 @@ export default function ReviewPage() {
                     key={templateId} 
                 />
             </div>
-
             <div className="p-8 md:p-12 bg-white shadow-2xl rounded-lg">
                 <SelectedTemplateComponent data={resumeData} />
             </div>

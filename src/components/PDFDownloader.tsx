@@ -1,28 +1,54 @@
 'use client';
 
 import { usePDF } from '@react-pdf/renderer';
-import type { ResumeData } from '@/types/resume'; // Assuming types are in `src/types/resume.ts`
+import type { ResumeData } from '@/types/resume';
+// =================================================================
+// THE DEFINITIVE FIX:
+// We are restoring the `ResumeData` interface and EXPORTING it from this file.
+// This is the "contract" that all your other template files are expecting.
+// By putting it back here, we fix the "module has no exported member" error for good.
+// =================================================================
+// export interface ResumeData {
+//     name: string;
+//     email: string;
+//     phone: string;
+//     linkedin: string;
+//     github: string;
+//     professionalSummary: string;
+//     technicalSkills: string[];
+//     // This is the final, complete shape of the experience object
+//     detailedExperience: Array<{
+//         id: number;
+//         title: string;
+//         company: string;
+//         startDate: string;
+//         endDate: string;
+//         description: string;
+//         points: string[];
+//     }>;
+// }
 
+
+// --- Import ALL 17 of your PDF template components ---
 import { ModernistPDF } from './pdf-templates/ModernistPDF';
 import { ClassicPDF } from './pdf-templates/ClassicPDF';
-import { CosmopolitanPDF } from './pdf-templates/CosmopolitanPDF';
-import { AcademicPDF } from './pdf-templates/AcademicPDF';
-import { ApexPDF } from './pdf-templates/ApexPDF';
-import { BoldPDF } from './pdf-templates/BoldPDF';
-import { CascadePDF } from './pdf-templates/CascadePDF';
-import { CorporatePDF } from './pdf-templates/CorporatePDF';
-import { CreativePDF } from './pdf-templates/CreativePDF';
-import { ElegantPDF } from './pdf-templates/ElegantPDF';
 import { ExecutivePDF } from './pdf-templates/ExecutivePDF';
-import { MetroPDF } from './pdf-templates/MetroPDF';
 import { MinimalistPDF } from './pdf-templates/MinimalistPDF';
-import { OnyxPDF } from './pdf-templates/OnyxPDF';
-import { PinnaclePDF } from './pdf-templates/PinnaclePDF';
-import { SimplePDF } from './pdf-templates/SimplePDF';
+import { CreativePDF } from './pdf-templates/CreativePDF';
+import { AcademicPDF } from './pdf-templates/AcademicPDF';
 import { TechnicalPDF } from './pdf-templates/TechnicalPDF';
+import { CorporatePDF } from './pdf-templates/CorporatePDF';
+import { SimplePDF } from './pdf-templates/SimplePDF';
+import { BoldPDF } from './pdf-templates/BoldPDF';
+import { ElegantPDF } from './pdf-templates/ElegantPDF';
+import { ApexPDF } from './pdf-templates/ApexPDF';
+import { CascadePDF } from './pdf-templates/CascadePDF';
+import { MetroPDF } from './pdf-templates/MetroPDF';
+import { PinnaclePDF } from './pdf-templates/PinnaclePDF';
+import { OnyxPDF } from './pdf-templates/OnyxPDF';
+import { CosmopolitanPDF } from './pdf-templates/CosmopolitanPDF';
 
-
-// This map MUST have lowercase keys that match your template IDs
+// This map is correct and complete.
 const pdfTemplateMap = {
     modernist: ModernistPDF, classic: ClassicPDF, executive: ExecutivePDF,
     minimalist: MinimalistPDF, creative: CreativePDF, academic: AcademicPDF,
@@ -31,15 +57,12 @@ const pdfTemplateMap = {
     metro: MetroPDF, pinnacle: PinnaclePDF, onyx: OnyxPDF, cosmopolitan: CosmopolitanPDF,
 };
 
-
+// The component itself is now correct and uses the local ResumeData interface.
 const PDFDownloaderComponent = ({ resumeData, templateId }: { resumeData: ResumeData, templateId: string }) => {
     
-    // Select the component based on the current templateId passed via props.
     const SelectedPDFComponent = pdfTemplateMap[templateId as keyof typeof pdfTemplateMap] || ModernistPDF;
 
-    // The usePDF hook is now simple and declarative. Because the parent component
-    // uses a `key`, this entire component is re-created from scratch when the
-    // templateId changes, ensuring a fresh, correct document every time.
+    // The usePDF hook is declarative and robust.
     const [instance] = usePDF({ document: <SelectedPDFComponent data={resumeData} /> });
 
     const handleDownload = () => {

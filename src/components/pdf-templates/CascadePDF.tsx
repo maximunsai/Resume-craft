@@ -152,7 +152,7 @@ export const CascadePDF = ({ data }: { data: ResumeData }) => (
               <Text style={styles.jobTitle}>{exp.title}</Text>
               <Text style={styles.companyName}>{exp.company}</Text>
             </View>
-            {exp.points.map((point, pIndex) => (
+            {(exp.points || []).map((point, pIndex) => (
               <View key={pIndex} style={styles.bulletPoint}>
                 <Text style={styles.bullet}>•</Text>
                 <Text style={styles.bulletText}>{point}</Text>

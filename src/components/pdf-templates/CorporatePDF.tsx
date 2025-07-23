@@ -60,7 +60,7 @@ export const CorporatePDF = ({ data }: { data: ResumeData }) => (
                         {/* Dates would go on the right */}
                     </View>
                     <Text style={styles.companyName}>{exp.company}</Text>
-                    {exp.points.map((point, pIndex) => (
+                    {(exp.points || []).map((point, pIndex) => (
                         <View key={pIndex} style={styles.bulletPoint}>
                             <Text style={styles.bullet}>•</Text>
                             <Text style={styles.bulletText}>{point}</Text>
