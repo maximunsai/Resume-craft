@@ -1,6 +1,8 @@
 // src/components/templates/Creative.tsx
 
-import type { ResumeData } from '@/components/PDFDownloader';
+// import type { ResumeData } from '@/components/PDFDownloader';
+import type { ResumeData } from '@/types/resume';
+
 
 // A simple map for potential icons. In a real app, you'd use an icon library.
 const skillIcons = {
@@ -49,7 +51,7 @@ export const Creative = ({ data }: { data: ResumeData }) => (
                         <h3 className="text-xl font-semibold text-gray-800">{exp.title}</h3>
                         <p className="text-md italic text-gray-600 mb-2">{exp.company}</p>
                         <ul className="list-disc list-inside space-y-1 text-gray-600">
-                            {exp.points.map((point, pIndex) => (
+                            {(exp.points || []).map((point, pIndex) => (
                                 <li key={pIndex}>{point}</li>
                             ))}
                         </ul>

@@ -1,6 +1,8 @@
 // src/components/templates/Cosmopolitan.tsx
 
-import type { ResumeData } from '@/components/PDFDownloader';
+// import type { ResumeData } from '@/components/PDFDownloader';
+import type { ResumeData } from '@/types/resume';
+
 
 export const Cosmopolitan = ({ data }: { data: ResumeData }) => (
     <div className="flex font-sans text-sm">
@@ -23,7 +25,7 @@ export const Cosmopolitan = ({ data }: { data: ResumeData }) => (
                         <h3 className="text-lg font-semibold text-gray-900">{exp.title}</h3>
                         <p className="text-md italic text-gray-600">{exp.company}</p>
                         <ul className="list-disc list-inside mt-1 text-gray-700 space-y-1">
-                            {exp.points.map((p, i) => <li key={i}>{p}</li>)}
+                            {(exp.points || []).map((p, i) => <li key={i}>{p}</li>)}
                         </ul>
                     </div>
                 ))}

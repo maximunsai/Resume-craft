@@ -1,6 +1,8 @@
 // src/components/templates/Academic.tsx
 
-import type { ResumeData } from '@/components/PDFDownloader';
+// import type { ResumeData } from '@/components/PDFDownloader';
+import type { ResumeData } from '@/types/resume';
+
 
 export const Academic = ({ data }: { data: ResumeData }) => (
     // Uses a classic serif font for a scholarly feel
@@ -28,7 +30,7 @@ export const Academic = ({ data }: { data: ResumeData }) => (
                     <h3 className="text-base font-bold">{exp.title}</h3>
                     <p className="text-sm italic text-gray-700 mb-1">{exp.company}</p>
                     <ul className="list-none space-y-1 pl-4 font-sans">
-                        {exp.points.map((point, pIndex) => (
+                        {(exp.points || []).map((point, pIndex) => (
                             <li key={pIndex} className="flex">
                                 <span className="mr-2">■</span>
                                 <span>{point}</span>

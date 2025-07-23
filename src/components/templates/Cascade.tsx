@@ -1,6 +1,8 @@
 // src/components/templates/Cascade.tsx
 
-import type { ResumeData } from '@/components/PDFDownloader';
+// import type { ResumeData } from '@/components/PDFDownloader';
+import type { ResumeData } from '@/types/resume';
+
 
 export const Cascade = ({ data }: { data: ResumeData }) => (
     <div className="font-serif max-w-4xl mx-auto p-4">
@@ -25,7 +27,7 @@ export const Cascade = ({ data }: { data: ResumeData }) => (
                         <p className="text-sm text-gray-500">{exp.company}</p>
                     </div>
                     <ul className="list-disc list-inside mt-1 text-sm space-y-1">
-                        {exp.points.map((point, pIndex) => <li key={pIndex}>{point}</li>)}
+                        {(exp.points || []).map((point, pIndex) => <li key={pIndex}>{point}</li>)}
                     </ul>
                 </div>
             ))}

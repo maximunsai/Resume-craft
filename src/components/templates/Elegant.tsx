@@ -1,6 +1,8 @@
 // src/components/templates/Elegant.tsx
 
-import type { ResumeData } from '@/components/PDFDownloader';
+// import type { ResumeData } from '@/components/PDFDownloader';
+import type { ResumeData } from '@/types/resume';
+
 
 export const Elegant = ({ data }: { data: ResumeData }) => (
     <div className="font-serif text-gray-700 p-8 bg-white">
@@ -32,7 +34,7 @@ export const Elegant = ({ data }: { data: ResumeData }) => (
                     <h3 className="text-xl font-semibold text-gray-800">{exp.title}</h3>
                     <p className="text-sm font-sans italic text-gray-600 mb-2">{exp.company}</p>
                     <ul className="list-none font-sans text-sm space-y-1">
-                        {exp.points.map((point, pIndex) => <li key={pIndex} className="pb-1">› {point}</li>)}
+                        {(exp.points || []).map((point, pIndex) => <li key={pIndex} className="pb-1">› {point}</li>)}
                     </ul>
                 </div>
             ))}

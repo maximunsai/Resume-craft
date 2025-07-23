@@ -1,6 +1,8 @@
 // src/components/templates/Corporate.tsx
 
-import type { ResumeData } from '@/components/PDFDownloader';
+// import type { ResumeData } from '@/components/PDFDownloader';
+import type { ResumeData } from '@/types/resume';
+
 
 export const Corporate = ({ data }: { data: ResumeData }) => (
     <div className="font-sans text-gray-900 p-1">
@@ -38,7 +40,7 @@ export const Corporate = ({ data }: { data: ResumeData }) => (
                     </div>
                     <p className="text-sm italic">{exp.company}</p>
                     <ul className="list-disc list-inside mt-1 text-sm space-y-1">
-                        {exp.points.map((point, pIndex) => (
+                        {(exp.points || []).map((point, pIndex) => (
                             <li key={pIndex}>{point}</li>
                         ))}
                     </ul>

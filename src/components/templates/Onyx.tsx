@@ -1,6 +1,8 @@
 // src/components/templates/Onyx.tsx
 
-import type { ResumeData } from '@/components/PDFDownloader';
+// import type { ResumeData } from '@/components/PDFDownloader';
+import type { ResumeData } from '@/types/resume';
+
 
 export const Onyx = ({ data }: { data: ResumeData }) => (
     <div className="font-sans text-white bg-gray-900 p-8">
@@ -41,7 +43,7 @@ export const Onyx = ({ data }: { data: ResumeData }) => (
                             <h3 className="text-lg font-semibold text-white">{exp.title}</h3>
                             <p className="text-md italic text-gray-400 mb-1">{exp.company}</p>
                             <ul className="list-disc list-inside mt-1 text-gray-300 space-y-1">
-                                {exp.points.map((p, i) => <li key={i}>{p}</li>)}
+                                {(exp.points || []).map((p, i) => <li key={i}>{p}</li>)}
                             </ul>
                         </div>
                     ))}

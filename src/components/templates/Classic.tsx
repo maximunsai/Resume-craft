@@ -1,6 +1,8 @@
 // src/components/templates/Classic.tsx
 
-import type { ResumeData } from '@/components/PDFDownloader'; // We reuse the same data structure
+// import type { ResumeData } from '@/components/PDFDownloader'; // We reuse the same data structure
+import type { ResumeData } from '@/types/resume';
+
 
 export const Classic = ({ data }: { data: ResumeData }) => (
     // We introduce a serif font for a more traditional feel.
@@ -41,7 +43,7 @@ export const Classic = ({ data }: { data: ResumeData }) => (
                     <p className="text-base italic text-gray-600 mb-2">{exp.company}</p>
                     {/* Bullet points are standard but use a sans-serif font for readability of long text. */}
                     <ul className="list-disc list-inside space-y-1 font-sans">
-                        {exp.points.map((point, pIndex) => (
+                        {(exp.points || []).map((point, pIndex) => (
                             <li key={pIndex} className="text-gray-700">{point}</li>
                         ))}
                     </ul>

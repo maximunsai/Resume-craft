@@ -8,26 +8,6 @@ import type { ResumeData } from '@/types/resume';
 // This is the "contract" that all your other template files are expecting.
 // By putting it back here, we fix the "module has no exported member" error for good.
 // =================================================================
-// export interface ResumeData {
-//     name: string;
-//     email: string;
-//     phone: string;
-//     linkedin: string;
-//     github: string;
-//     professionalSummary: string;
-//     technicalSkills: string[];
-//     // This is the final, complete shape of the experience object
-//     detailedExperience: Array<{
-//         id: number;
-//         title: string;
-//         company: string;
-//         startDate: string;
-//         endDate: string;
-//         description: string;
-//         points: string[];
-//     }>;
-// }
-
 
 // --- Import ALL 17 of your PDF template components ---
 import { ModernistPDF } from './pdf-templates/ModernistPDF';
