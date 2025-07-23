@@ -15,7 +15,7 @@ const getFontPath = (fontFile: string) => {
 export const registerAllPdfFonts = () => {
   if (fontsRegistered) return;
 
-  console.log("Registering all PDF fonts globally from their absolute paths...");
+  console.log("Registering all PDF fonts globally from absolute paths...");
 
   try {
     // Helvetica (Modernist, Corporate, Simple)
@@ -41,9 +41,9 @@ export const registerAllPdfFonts = () => {
     Font.register({
       family: 'Lato',
       fonts: [
-        { src: getFontPath('lato-regular.ttf')},
+        { src: getFontPath('lato-regular.ttf') },
         { src: getFontPath('lato-bold.ttf'), fontWeight: 'bold' },
-        // { src: getFontPath('lato-black.ttf'), fontWeight: '900' },
+        { src: getFontPath('lato-black.ttf'), fontWeight: 900 },
       ],
     });
 
@@ -53,7 +53,7 @@ export const registerAllPdfFonts = () => {
       fonts: [
         { src: getFontPath('montserrat-regular.ttf') },
         { src: getFontPath('montserrat-bold.ttf'), fontWeight: 'bold' },
-        // { src: getFontPath('montserrat-semibold.ttf'), fontWeight: '600' }, // semibold numeric
+        { src: getFontPath('montserrat-semibold.ttf'), fontWeight: 600 },
       ],
     });
 
@@ -78,14 +78,12 @@ export const registerAllPdfFonts = () => {
     Font.register({
       family: 'Roboto Mono',
       src: getFontPath('robotomono-regular-webfont.ttf'),
-    //   fontWeight: '400',
     });
 
     // Oswald (Bold)
     Font.register({
       family: 'Oswald',
       src: getFontPath('oswald-regular.ttf'),
-    //   fontWeight: '400',
     });
     Font.register({
       family: 'Oswald-Bold',
@@ -94,13 +92,13 @@ export const registerAllPdfFonts = () => {
     });
 
     // Playfair Display (Elegant)
-    // Convert woff -> ttf if possible, using .ttf here is a must
+    // Please ensure you have converted .woff to .ttf for these or change names here
     Font.register({
       family: 'Playfair Display',
       fonts: [
-        { src: getFontPath('playfair-display-latin-400-normal.ttf') },
-        { src: getFontPath('playfair-display-latin-700-normal.ttf'), fontWeight: 'bold' },
-        { src: getFontPath('playfair-display-latin-400-italic.ttf'), fontStyle: 'italic' },
+        { src: getFontPath('playfair-display-regular.ttf') },
+        { src: getFontPath('playfair-display-bold.ttf'), fontWeight: 'bold' },
+        { src: getFontPath('playfair-display-italic.ttf'), fontStyle: 'italic' },
       ],
     });
 
@@ -108,7 +106,7 @@ export const registerAllPdfFonts = () => {
     Font.register({
       family: 'Garamond',
       fonts: [
-        { src: getFontPath('EBGaramond-Regular.ttf')},
+        { src: getFontPath('EBGaramond-Regular.ttf') },
         { src: getFontPath('EBGaramond-Bold.ttf'), fontWeight: 'bold' },
       ],
     });
@@ -117,8 +115,8 @@ export const registerAllPdfFonts = () => {
     Font.register({
       family: 'Inter',
       fonts: [
-        { src: getFontPath('inter-Regular.ttf') },
-        { src: getFontPath('inter-Bold.ttf'), fontWeight: 'bold' },
+        { src: getFontPath('Inter-Regular.ttf') },
+        { src: getFontPath('Inter-Bold.ttf'), fontWeight: 'bold' },
       ],
     });
 
@@ -126,9 +124,9 @@ export const registerAllPdfFonts = () => {
     Font.register({
       family: 'Raleway',
       fonts: [
-        { src: getFontPath('raleway-latin-400.woff') },
-        { src: getFontPath('raleway-latin-900.woff'), fontWeight: 'bold' },
-        // { src: getFontPath('raleway-black.ttf'), fontWeight: '900' },
+        { src: getFontPath('raleway-regular.ttf') },
+        { src: getFontPath('raleway-bold.ttf'), fontWeight: 'bold' },
+        { src: getFontPath('raleway-black.ttf'), fontWeight: 900 },
       ],
     });
 
