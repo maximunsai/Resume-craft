@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import Image from 'next/image';
 
-// This list of templates is correct and preserved.
+// The full list of templates we have designed
 const templates = [
     { id: 'modernist', name: 'Modernist', thumbnailUrl: '/thumbnails/modernist.png' },
     { id: 'classic', name: 'Classic', thumbnailUrl: '/thumbnails/classic.png' },
@@ -29,31 +29,19 @@ const templates = [
 export default function TemplateSelectionPage() {
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
-
-    // We now use a selector to get only what we need for rendering and interaction.
-    // This is more performant.
-    const { templateId, setTemplateId, setAiGenerated } = useResumeStore(state => ({
-        templateId: state.templateId,
-        setTemplateId: state.setTemplateId,
-        setAiGenerated: state.setAiGenerated,
-    }));
+    const { templateId, setTemplateId, setAiGenerated } = useResumeStore();
 
     const handleGenerateResume = async () => {
-        // The list of available templates is correct.
-        const availableTemplates = [ 'modernist', /* ... all your other template IDs ... */ 'cosmopolitan' ];
-        if (!availableTemplates.includes(templateId)) {
-            alert(`Sorry, the "${templateId}" template is not yet available for generation.`);
-            return;
-        }
+        // =================================================================
+        // THE DEFINITIVE FIX: The "allow-list" now includes ALL templates.
+        // We can simply remove the check entirely, since all templates listed
+        // above are now considered available.
+        // =================================================================
 
         setIsLoading(true);
         useResumeStore.setState({ aiGenerated: null });
 
         try {
-            // =================================================================
-            // THE DEFINITIVE FIX: Get the fresh data right before the API call.
-            // =================================================================
-            // We get a snapshot of the LATEST state from the store. This prevents stale data.
             const currentState = useResumeStore.getState();
             const resumeDataForApi = {
                 personal: currentState.personal,
@@ -66,7 +54,6 @@ export default function TemplateSelectionPage() {
             const response = await fetch('/api/generate-resume', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                // We send the fresh, up-to-date data to the backend.
                 body: JSON.stringify(resumeDataForApi),
             });
 
@@ -77,12 +64,11 @@ export default function TemplateSelectionPage() {
             router.push('/review');
         } catch (error) {
             alert((error as Error).message);
-        } finally {
-            setIsLoading(false);
+            setIsLoading(false); // Ensure loading stops on error
         }
+        // No finally block needed if we handle the error case
     };
 
-    // --- The JSX is preserved from your working version ---
     return (
         <div className="max-w-7xl mx-auto p-8">
             <div className="text-center mb-10">
