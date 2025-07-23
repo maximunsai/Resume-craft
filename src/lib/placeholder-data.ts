@@ -1,6 +1,8 @@
 // src/lib/placeholder-data.ts
 
-import type { ResumeData } from '@/components/PDFDownloader';
+// import type { ResumeData } from '@/components/PDFDownloader';
+import type { ResumeData } from '@/types/resume';
+
 
 export const placeholderResumeData: ResumeData = {
     name: 'John M. Anderson',
@@ -21,7 +23,10 @@ export const placeholderResumeData: ResumeData = {
                 'Architected and led the development of a new real-time analytics dashboard using Next.js and WebSockets, resulting in a 30% increase in user engagement.',
                 'Mentored a team of four junior engineers, improving team productivity and code quality.',
                 'Optimized backend services, reducing API response times by over 50%.',
-            ]
+            ],
+            startDate: '',
+            endDate: '',
+            description: ''
         },
         {
             id: 2,
@@ -31,7 +36,10 @@ export const placeholderResumeData: ResumeData = {
                 'Developed and maintained features for a large-scale e-commerce platform using React and Redux.',
                 'Collaborated with product managers and designers to translate requirements into technical solutions.',
                 'Wrote comprehensive unit and integration tests, increasing code coverage by 40%.',
-            ]
+            ],
+            startDate: '',
+            endDate: '',
+            description: ''
         }
     ],
 };
