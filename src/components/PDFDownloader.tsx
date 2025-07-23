@@ -1,8 +1,10 @@
 'use client';
 
-import { usePDF } from '@react-pdf/renderer';
+import { useState, useEffect } from 'react';
+// We are switching to the more robust PDFViewer component for rendering
+import { PDFViewer, BlobProvider } from '@react-pdf/renderer';
 import type { ResumeData } from '@/types/resume';
-import { registerAllPdfFonts } from '@/lib/pdf-fonts'; // <-- Import our global registry
+import { registerAllPdfFonts } from '@/lib/pdf-fonts'; // Our global registry is still correct
 
 // --- Import ALL 17 of your PDF template components ---
 import { ModernistPDF } from './pdf-templates/ModernistPDF';
@@ -24,7 +26,6 @@ import { PinnaclePDF } from './pdf-templates/PinnaclePDF';
 import { SimplePDF } from './pdf-templates/SimplePDF';
 import { TechnicalPDF } from './pdf-templates/TechnicalPDF';
 
-// This map is correct and complete.
 const pdfTemplateMap = {
     modernist: ModernistPDF, classic: ClassicPDF, executive: ExecutivePDF,
     minimalist: MinimalistPDF, creative: CreativePDF, academic: AcademicPDF,
@@ -33,46 +34,55 @@ const pdfTemplateMap = {
     metro: MetroPDF, pinnacle: PinnaclePDF, onyx: OnyxPDF, cosmopolitan: CosmopolitanPDF,
 };
 
+// This is a one-time setup call.
+registerAllPdfFonts();
 
 const PDFDownloaderComponent = ({ resumeData, templateId }: { resumeData: ResumeData, templateId: string }) => {
     
-    // =================================================================
-    // THE DEFINITIVE FIX: Call the global font registration function.
-    // This runs ONCE and ensures all fonts are loaded and ready before rendering.
-    // =================================================================
-    registerAllPdfFonts();
-
     const SelectedPDFComponent = pdfTemplateMap[templateId as keyof typeof pdfTemplateMap] || ModernistPDF;
 
-    const [instance] = usePDF({ document: <SelectedPDFComponent data={resumeData} /> });
-
-    const handleDownload = () => {
-        if (instance.error) {
-            console.error("PDF Generation Error:", instance.error);
-            alert(`Sorry, an error occurred while generating the PDF. This can sometimes be a network issue with the fonts. Please try again.`);
-            return;
-        }
-        if (!instance.loading && instance.url) {
+    const handleDownload = (blob: Blob | null, url: string | null) => {
+        if (blob && url) {
             const link = document.createElement('a');
-            link.href = instance.url;
+            link.href = url;
             link.download = `${resumeData.name.replace(/\s+/g, '_')}_Resume_${templateId}.pdf`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+        } else {
+            alert("Sorry, there was an error generating the PDF. Please try again.");
         }
     };
 
     return (
-        <button
-            onClick={handleDownload}
-            disabled={instance.loading || !!instance.error}
-            className="block w-full text-center py-3 px-5 bg-yellow-400 text-gray-900 no-underline rounded-lg font-bold hover:bg-yellow-500 transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed"
-        >
-            {instance.loading ? 'Generating PDF...' 
-                : instance.error ? 'Error: Click to Retry' 
-                : 'Download PDF'
-            }
-        </button>
+        // =================================================================
+        // THE DEFINITIVE, FINAL ARCHITECTURE
+        // =================================================================
+        // We use the BlobProvider component. It is the most reliable way to get
+        // the PDF data. It provides a render prop with the blob, url, loading, and error states.
+        <BlobProvider document={<SelectedPDFComponent data={resumeData} />}>
+            {({ blob, url, loading, error }) => {
+                
+                if (error) {
+                    console.error("PDF Generation Error:", error);
+                    // You can log the error to a service like Sentry here
+                }
+
+                // The button's text and state are now driven by these reliable props.
+                return (
+                    <button
+                        onClick={() => handleDownload(blob, url)}
+                        disabled={loading || !!error}
+                        className="block w-full text-center py-3 px-5 bg-yellow-400 text-gray-900 no-underline rounded-lg font-bold hover:bg-yellow-500 transition-colors disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed"
+                    >
+                        {loading ? 'Generating PDF...' 
+                            : error ? 'Error: Click to Retry' 
+                            : 'Download PDF'
+                        }
+                    </button>
+                );
+            }}
+        </BlobProvider>
     );
 };
 
