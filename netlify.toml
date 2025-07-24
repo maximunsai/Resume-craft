@@ -1,0 +1,16 @@
+# netlify.toml
+
+# This is the build configuration for Netlify.
+[build]
+  # This command tells Netlify how to build your Next.js project.
+  command = "npm run build"
+  
+  # This tells Netlify where the final, built version of your site will be.
+  # For Next.js, this is ALWAYS the .next directory.
+  publish = ".next"
+
+# This plugin is essential. It provides all the necessary server-side
+# functionality (serverless functions, edge functions, redirects)
+# to make a Next.js app work correctly on Netlify.
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
