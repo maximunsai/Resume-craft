@@ -1,6 +1,8 @@
 // src/components/templates/Technical.tsx
 
-import type { ResumeData } from '@/components/PDFDownloader';
+// import type { ResumeData } from '@/components/PDFDownloader';
+import type { ResumeData } from '@/types/resume';
+
 
 export const Technical = ({ data }: { data: ResumeData }) => (
     <div className="font-sans text-gray-800 text-sm bg-gray-50 p-10">
@@ -39,7 +41,7 @@ export const Technical = ({ data }: { data: ResumeData }) => (
                         <h3 className="text-lg font-bold text-gray-900">{exp.title}</h3>
                         <p className="text-md font-semibold text-gray-700 mb-2">{exp.company}</p>
                         <ul className="space-y-1">
-                            {exp.points.map((point, pIndex) => (
+                            {(exp.points || []).map((point, pIndex) => (
                                 <li key={pIndex} className="flex">
                                     <span className="mr-2 text-blue-600 font-bold">{'>'}</span>
                                     <span>{point}</span>

@@ -1,6 +1,8 @@
 // src/components/templates/Bold.tsx
 
-import type { ResumeData } from '@/components/PDFDownloader';
+// import type { ResumeData } from '@/components/PDFDownloader';
+import type { ResumeData } from '@/types/resume';
+
 
 export const Bold = ({ data }: { data: ResumeData }) => (
     <div className="flex font-sans">
@@ -28,7 +30,7 @@ export const Bold = ({ data }: { data: ResumeData }) => (
                         <h3 className="text-lg font-bold">{exp.title}</h3>
                         <p className="text-md italic text-gray-600 mb-1">{exp.company}</p>
                         <ul className="list-disc list-inside text-sm space-y-1">
-                            {exp.points.map((point, pIndex) => <li key={pIndex}>{point}</li>)}
+                            {(exp.points || []).map((point, pIndex) => <li key={pIndex}>{point}</li>)}
                         </ul>
                     </div>
                 ))}

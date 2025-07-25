@@ -1,6 +1,8 @@
 // src/components/templates/Modernist.tsx - POLISHED VERSION
 
-import type { ResumeData } from '@/components/PDFDownloader'; // Use our shared type
+// import type { ResumeData } from '@/components/PDFDownloader'; // Use our shared type
+import type { ResumeData } from '@/types/resume';
+
 
 export const Modernist = ({ data }: { data: ResumeData }) => (
     <div className="font-sans text-gray-800 text-sm leading-relaxed">
@@ -32,7 +34,7 @@ export const Modernist = ({ data }: { data: ResumeData }) => (
                     <h3 className="text-base font-bold text-gray-900">{exp.title}</h3>
                     <p className="text-sm italic text-gray-600 mb-1">{exp.company}</p>
                     <ul className="list-disc list-inside space-y-1">
-                        {exp.points.map((point, pIndex) => (
+                        {(exp.points || []).map((point, pIndex) => (
                             <li key={pIndex} className="text-gray-700">{point}</li>
                         ))}
                     </ul>

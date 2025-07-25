@@ -1,7 +1,8 @@
 // src/components/pdf-templates/SimplePDF.tsx
 
 import { Document, Page, Text, View, StyleSheet, Font, Link } from '@react-pdf/renderer';
-import type { ResumeData } from '../PDFDownloader';
+// import type { ResumeData } from '../PDFDownloader';
+import type { ResumeData } from '@/types/resume';
 
 Font.register({ family: 'Helvetica', fonts: [
     { src: 'https://cdn.jsdelivr.net/npm/helveticaneue@2.0.0/dist/Helvetica.ttf' },
@@ -56,7 +57,7 @@ export const SimplePDF = ({ data }: { data: ResumeData }) => (
                         <Text style={styles.jobTitle}>{exp.title}</Text>
                     </View>
                     <Text style={styles.companyName}>{exp.company}</Text>
-                    {exp.points.map((point, pIndex) => (
+                    {(exp.points || []).map((point, pIndex) => (
                         <View key={pIndex} style={styles.bulletPoint}>
                             <Text style={styles.bullet}>•</Text>
                             <Text style={styles.bulletText}>{point}</Text>

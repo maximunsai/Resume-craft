@@ -1,17 +1,11 @@
-// src/components/pdf-templates/CreativePDF.tsx
+// src/components/pdf-templates/CreativePDF.tsx - CLEANED AND CORRECTED
 
-import { Document, Page, Text, View, StyleSheet, Font, Link } from '@react-pdf/renderer';
-import type { ResumeData } from '../PDFDownloader';
+import { Document, Page, Text, View, StyleSheet, Link } from '@react-pdf/renderer';
+// We correctly import the ResumeData type from its single source of truth.
+import type { ResumeData } from '@/types/resume';
 
-// Register Montserrat font with proper weights
-Font.register({
-  family: 'Montserrat',
-  fonts: [
-    { src: 'https://fonts.gstatic.com/s/montserrat/v26/JTUSjIg1_i6t8kCHKm459Wlhyw.ttf' },
-    { src: 'https://fonts.gstatic.com/s/montserrat/v26/JTUSjIg1_i6t8kCHKm459WRhyw.ttf', fontWeight: 'bold' },
-  ]
-});
 
+// The styles object is now safe to use, as it can trust that 'Montserrat' has already been loaded.
 const styles = StyleSheet.create({
     page: { 
         flexDirection: 'row', 
@@ -21,25 +15,14 @@ const styles = StyleSheet.create({
     },
     leftColumn: { 
         width: '35%', 
-        backgroundColor: '#319795', // Teal color matching the image
+        backgroundColor: '#319795',
         color: 'white', 
         padding: 20,
         paddingTop: 30
     },
     rightColumn: { 
         width: '65%', 
-        padding: 20,
-        paddingTop: 30
-    },
-    profileCircle: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-        borderWidth: 3,
-        borderColor: 'white',
-        alignSelf: 'center',
-        marginBottom: 20,
+        padding: '30px 20px 20px 20px',
     },
     name: { 
         fontSize: 20, 
@@ -95,18 +78,16 @@ const styles = StyleSheet.create({
         fontSize: 11, 
         color: '#319795', 
         marginBottom: 8,
-        fontStyle: 'italic'
     },
     bulletPoint: { 
         flexDirection: 'row', 
         marginBottom: 4,
-        alignItems: 'flex-start'
+        paddingRight: 10,
     },
     bullet: { 
-        width: 12,
+        width: 10,
         fontSize: 10,
         color: '#319795',
-        marginTop: 1
     },
     bulletText: { 
         flex: 1, 
@@ -117,14 +98,10 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255, 255, 255, 0.2)', 
         color: 'white', 
         borderRadius: 12, 
-        paddingTop: 4,
-        paddingBottom: 4,
-        paddingLeft: 8,
-        paddingRight: 8,
+        padding: '4px 8px',
         fontSize: 8, 
         marginRight: 6, 
         marginBottom: 6,
-        textAlign: 'center'
     },
     skillContainer: { 
         flexDirection: 'row', 
@@ -138,9 +115,6 @@ export const CreativePDF = ({ data }: { data: ResumeData }) => (
     <Page size="A4" style={styles.page}>
         {/* Left Column - Teal Sidebar */}
         <View style={styles.leftColumn}>
-            {/* Profile Circle Placeholder */}
-            <View style={styles.profileCircle} />
-            
             <Text style={styles.name}>{data.name}</Text>
             
             <View style={styles.section}>
@@ -166,8 +140,8 @@ export const CreativePDF = ({ data }: { data: ResumeData }) => (
             <View style={styles.section}>
                 <Text style={styles.sectionTitleLeft}>Skills</Text>
                 <View style={styles.skillContainer}>
-                    {data.technicalSkills && data.technicalSkills.map((skill, index) => (
-                        <Text key={index} style={styles.skillTag}>{skill}</Text>
+                    {data.technicalSkills.map((skill) => (
+                        <Text key={skill} style={styles.skillTag}>{skill}</Text>
                     ))}
                 </View>
             </View>
@@ -182,14 +156,14 @@ export const CreativePDF = ({ data }: { data: ResumeData }) => (
                 </View>
             )}
             
-            {data.detailedExperience && data.detailedExperience.length > 0 && (
+            {data.detailedExperience?.length > 0 && (
                 <View style={styles.section}>
                     <Text style={styles.sectionTitleRight}>Experience</Text>
-                    {data.detailedExperience.map((exp, index) => (
-                        <View key={exp.id || index} style={styles.experienceItem} wrap={false}>
+                    {data.detailedExperience.map((exp) => (
+                        <View key={exp.id} style={styles.experienceItem} wrap={false}>
                             <Text style={styles.jobTitle}>{exp.title}</Text>
                             <Text style={styles.companyName}>{exp.company}</Text>
-                            {exp.points && exp.points.map((point, pIndex) => (
+                            {(exp.points || []).map((point, pIndex) => (
                                 <View key={pIndex} style={styles.bulletPoint}>
                                     <Text style={styles.bullet}>•</Text>
                                     <Text style={styles.bulletText}>{point}</Text>

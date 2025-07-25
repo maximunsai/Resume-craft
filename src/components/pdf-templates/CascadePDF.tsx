@@ -1,7 +1,8 @@
 // src/components/pdf-templates/CascadePDF.tsx
 
 import { Document, Page, Text, View, StyleSheet, Font, Link } from '@react-pdf/renderer';
-import type { ResumeData } from '../PDFDownloader';
+// import type { ResumeData } from '../PDFDownloader';
+import type { ResumeData } from '@/types/resume';
 
 // Use system fonts for better reliability
 // Font.register({ 
@@ -151,7 +152,7 @@ export const CascadePDF = ({ data }: { data: ResumeData }) => (
               <Text style={styles.jobTitle}>{exp.title}</Text>
               <Text style={styles.companyName}>{exp.company}</Text>
             </View>
-            {exp.points.map((point, pIndex) => (
+            {(exp.points || []).map((point, pIndex) => (
               <View key={pIndex} style={styles.bulletPoint}>
                 <Text style={styles.bullet}>•</Text>
                 <Text style={styles.bulletText}>{point}</Text>

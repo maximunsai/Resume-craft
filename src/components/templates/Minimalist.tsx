@@ -1,6 +1,8 @@
 // src/components/templates/Minimalist.tsx
 
-import type { ResumeData } from '@/components/PDFDownloader';
+// import type { ResumeData } from '@/components/PDFDownloader';
+import type { ResumeData } from '@/types/resume';
+
 
 // VERIFY THIS LINE: The component is named "Minimalist" (capital M) and is exported.
 export const Minimalist = ({ data }: { data: ResumeData }) => (
@@ -25,7 +27,7 @@ export const Minimalist = ({ data }: { data: ResumeData }) => (
                         <h3 className="text-lg font-semibold text-gray-800">{exp.title}</h3>
                         <p className="text-sm text-gray-600 mb-2">{exp.company}</p>
                         <ul className="space-y-1">
-                            {exp.points.map((point, pIndex) => (
+                            {(exp.points || []).map((point, pIndex) => (
                                 <li key={pIndex} className="flex">
                                     <span className="mr-2 text-gray-400">–</span>
                                     <span>{point}</span>

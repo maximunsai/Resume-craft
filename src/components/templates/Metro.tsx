@@ -1,6 +1,8 @@
 // src/components/templates/Metro.tsx
 
-import type { ResumeData } from '@/components/PDFDownloader';
+// import type { ResumeData } from '@/components/PDFDownloader';
+import type { ResumeData } from '@/types/resume';
+
 
 export const Metro = ({ data }: { data: ResumeData }) => (
     <div className="font-sans text-sm p-8 bg-gray-50">
@@ -26,7 +28,7 @@ export const Metro = ({ data }: { data: ResumeData }) => (
                             <h3 className="text-base font-semibold">{exp.title}</h3>
                             <p className="text-sm text-gray-500">{exp.company}</p>
                             <ul className="list-disc list-inside mt-1 text-gray-600 text-xs">
-                                {exp.points.map((point, i) => <li key={i}>{point}</li>)}
+                                {(exp.points || []).map((point, i) => <li key={i}>{point}</li>)}
                             </ul>
                         </div>
                     ))}

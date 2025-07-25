@@ -1,7 +1,8 @@
 // src/components/pdf-templates/ModernistPDF.tsx
 
 import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
-import type { ResumeData } from '../PDFDownloader'; // Import the shared type
+// import type { ResumeData } from '../PDFDownloader'; // Import the shared type
+import type { ResumeData } from '@/types/resume';
 
 // Register fonts
 Font.register({
@@ -52,7 +53,7 @@ export const ModernistPDF = ({ data }: { data: ResumeData }) => (
                 <View key={exp.id} wrap={false} style={{ marginBottom: 10 }}>
                     <Text style={styles.jobTitle}>{exp.title}</Text>
                     <Text style={styles.companyName}>{exp.company}</Text>
-                    {exp.points.map((point, pIndex) => (
+                    {(exp.points || []).map((point, pIndex) => (
                         <View key={pIndex} style={styles.bulletPoint}>
                             <Text style={styles.bullet}>•</Text>
                             <Text style={styles.bulletText}>{point}</Text>

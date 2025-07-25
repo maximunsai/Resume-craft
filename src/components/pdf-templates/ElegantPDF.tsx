@@ -1,7 +1,8 @@
 // src/components/pdf-templates/ElegantPDF.tsx
 
 import { Document, Page, Text, View, StyleSheet, Font, Link } from '@react-pdf/renderer';
-import type { ResumeData } from '../PDFDownloader';
+// import type { ResumeData } from '../PDFDownloader';
+import type { ResumeData } from '@/types/resume';
 
 // Register elegant fonts
 Font.register({
@@ -172,7 +173,7 @@ export const ElegantPDF = ({ data }: { data: ResumeData }) => (
           <View key={exp.id || index} style={styles.experienceItem} wrap={false}>
             <Text style={styles.jobTitle}>{exp.title}</Text>
             <Text style={styles.companyName}>{exp.company}</Text>
-            {exp.points.map((point, pIndex) => (
+            {(exp.points || []).map((point, pIndex) => (
               <View key={pIndex} style={styles.bulletPoint}>
                 <Text style={styles.bullet}>›</Text>
                 <Text style={styles.bulletText}>{point}</Text>

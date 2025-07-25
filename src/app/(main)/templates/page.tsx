@@ -29,33 +29,34 @@ const templates = [
 export default function TemplateSelectionPage() {
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
-    const { templateId, setTemplateId, setAiGenerated, ...resumeData } = useResumeStore();
+    const { templateId, setTemplateId, setAiGenerated } = useResumeStore();
 
     const handleGenerateResume = async () => {
-        // This list now includes all the templates we have built.
-        const availableTemplates = [
-            'modernist', 'classic', 'executive', 'minimalist', 'creative', 
-            'academic', 'technical', 'corporate', 'simple', 'bold', 
-            'elegant', 'apex', 'cascade', 'metro', 'pinnacle', 'onyx', 'cosmopolitan'
-        ];
-
-        if (!availableTemplates.includes(templateId)) {
-            // Using a more theme-consistent alert
-            alert(`Sorry, the "${templateId}" template is not yet available for generation.`);
-            return;
-        }
+        // =================================================================
+        // THE DEFINITIVE FIX: The "allow-list" now includes ALL templates.
+        // We can simply remove the check entirely, since all templates listed
+        // above are now considered available.
+        // =================================================================
 
         setIsLoading(true);
-        // It's good practice to clear old AI data if it exists.
-        // We can do this without causing type errors by directly calling the setter from the store hook.
         useResumeStore.setState({ aiGenerated: null });
 
         try {
+            const currentState = useResumeStore.getState();
+            const resumeDataForApi = {
+                personal: currentState.personal,
+                experience: currentState.experience,
+                skills: currentState.skills,
+                finalThoughts: currentState.finalThoughts,
+                jobDescription: currentState.jobDescription,
+            };
+
             const response = await fetch('/api/generate-resume', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(resumeData),
+                body: JSON.stringify(resumeDataForApi),
             });
+
             const aiData = await response.json();
             if (!response.ok) throw new Error(aiData.error || "Failed to generate resume");
 
@@ -63,13 +64,12 @@ export default function TemplateSelectionPage() {
             router.push('/review');
         } catch (error) {
             alert((error as Error).message);
-        } finally {
-            setIsLoading(false);
+            setIsLoading(false); // Ensure loading stops on error
         }
+        // No finally block needed if we handle the error case
     };
 
     return (
-        // The page now has no background color, inheriting it from globals.css
         <div className="max-w-7xl mx-auto p-8">
             <div className="text-center mb-10">
                 <h1 className="text-4xl font-bold font-poppins text-white">Choose Your Template</h1>
@@ -83,7 +83,6 @@ export default function TemplateSelectionPage() {
                         className="group cursor-pointer"
                         onClick={() => setTemplateId(template.id)}
                     >
-                        {/* Updated card styling for the dark theme */}
                         <div 
                             className={`bg-gray-800 rounded-lg shadow-md overflow-hidden border-4 transition-all duration-300 ease-in-out ${templateId === template.id ? 'border-yellow-400 scale-105 shadow-2xl' : 'border-gray-700 group-hover:border-yellow-500/50'}`}
                         >
@@ -93,6 +92,7 @@ export default function TemplateSelectionPage() {
                                 width={400} 
                                 height={565} 
                                 className="w-full h-auto object-cover object-top"
+                                priority={['modernist', 'classic', 'executive', 'minimalist'].includes(template.id)}
                             />
                         </div>
                         <p className="text-center font-semibold p-2 mt-1 text-gray-300 group-hover:text-yellow-400">{template.name}</p>

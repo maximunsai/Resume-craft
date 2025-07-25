@@ -1,6 +1,8 @@
 // src/components/templates/Simple.tsx
 
-import type { ResumeData } from '@/components/PDFDownloader';
+// import type { ResumeData } from '@/components/PDFDownloader';
+import type { ResumeData } from '@/types/resume';
+
 
 export const Simple = ({ data }: { data: ResumeData }) => (
     <div className="font-sans text-gray-800 text-sm p-1 max-w-4xl mx-auto">
@@ -36,7 +38,7 @@ export const Simple = ({ data }: { data: ResumeData }) => (
                     </div>
                     <p className="text-md italic text-gray-700">{exp.company}</p>
                     <ul className="list-disc list-inside mt-2 text-sm space-y-1">
-                        {exp.points.map((point, pIndex) => (
+                        {(exp.points || []).map((point, pIndex) => (
                             <li key={pIndex}>{point}</li>
                         ))}
                     </ul>

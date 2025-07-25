@@ -1,7 +1,8 @@
 // src/components/pdf-templates/MetroPDF.tsx
 
 import { Document, Page, Text, View, StyleSheet, Font, Link } from '@react-pdf/renderer';
-import type { ResumeData } from '../PDFDownloader';
+// import type { ResumeData } from '../PDFDownloader';
+import type { ResumeData } from '@/types/resume';
 
 Font.register({ family: 'Inter', fonts: [
     { src: 'https://cdn.jsdelivr.net/npm/inter-font@3.19.0/Inter-Regular.woff' },
@@ -49,7 +50,7 @@ export const MetroPDF = ({ data }: { data: ResumeData }) => (
                     <View key={exp.id} style={styles.experienceItem} wrap={false}>
                         <Text style={styles.jobTitle}>{exp.title}</Text>
                         <Text style={styles.companyName}>{exp.company}</Text>
-                        {exp.points.map((point, pIndex) => (
+                        {(exp.points || []).map((point, pIndex) => (
                             <View key={pIndex} style={styles.bulletPoint}>
                                 <Text style={styles.bullet}>•</Text>
                                 <Text style={styles.bulletText}>{point}</Text>
