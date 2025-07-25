@@ -149,64 +149,64 @@ export default function InterviewSessionPage() {
         }
     };
 
-    const handleFinishInterview = async () => { /* ... Your working function ... */ };
-    
-    // --- UI (Preserved from your working version) ---
-    const isVoiceReady = (process.env.NEXT_PUBLIC_PREMIUM_VOICE_ENABLED === 'true' && !!selectedPersonaId) || (!(process.env.NEXT_PUBLIC_PREMIUM_VOICE_ENABLED === 'true') && !!selectedVoice);
+        // =================================================================
+    // THIS IS THE DEFINITIVE, FINAL, AND CORRECT FUNCTION
+    // =================================================================
+    const handleFinishInterview = async () => {
+        // Prevent the user from clicking again while processing
+        if (isThinking) return;
 
-    if (!sessionActive) {
-        return (
-            <div className="max-w-4xl mx-auto p-8 flex flex-col items-center justify-center h-[calc(100vh-65px)] text-center">
-                <div className="bg-gray-800 p-8 rounded-xl border border-gray-700 w-full max-w-lg">
-                    <h1 className="text-3xl font-poppins font-bold text-white mb-4">Mock Interview Ready</h1>
-                    <p className="text-gray-400 mb-6">Your AI interviewer, Forge, is ready to begin. Select a voice and click start.</p>
-                    <div className="mb-6 flex justify-center"><VoiceSelectionMenu /></div>
-                    <button onClick={handleStartSession} disabled={!isVoiceReady} className="w-full flex items-center justify-center gap-3 px-12 py-4 bg-yellow-400 text-gray-900 font-bold rounded-lg text-xl disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed hover:bg-yellow-500 shadow-lg">
-                        <PlayCircle /> Start Interview
-                    </button>
-                </div>
-            </div>
-        );
-    }
-    
-    return (
-        <div className="max-w-4xl mx-auto p-4 flex flex-col h-[calc(100vh-65px)]">
-            <div className="flex justify-between items-center mb-4 flex-shrink-0">
-                <div>
-                    <h1 className="text-2xl font-bold text-white">Mock Interview Session</h1>
-                    <p className="text-sm font-semibold text-yellow-400">Stage: {stage}</p>
-                </div>
-                <div className="flex items-center gap-4">
-                    <VoiceSelectionMenu />
-                    <button onClick={handleFinishInterview} disabled={isThinking || messages.length < 2} className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed"> <Flag size={16} /> End & Analyze </button>
-                </div>
-            </div>
-            <div ref={chatContainerRef} className="flex-1 overflow-y-auto space-y-6 p-4 rounded-t-lg bg-gray-800/50 border-x border-t border-gray-700">
-                {messages.map((msg, index) => (
-                    <div key={index} className="flex items-start gap-4" style={{ flexDirection: msg.sender === 'user' ? 'row-reverse' : 'row' }}>
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${msg.sender === 'AI' ? 'bg-yellow-400/20 text-yellow-400' : 'bg-gray-600 text-white'}`}>{msg.sender === 'AI' ? <Bot /> : <User />}</div>
-                        <div className={`max-w-xl p-4 rounded-xl shadow-md ${msg.sender === 'AI' ? 'bg-gray-700 text-gray-200' : 'bg-blue-600 text-white'}`}>
-                            <div className="flex items-center">
-                                <p className="whitespace-pre-wrap flex-1">{msg.sender === 'AI' && msg.text === '' && isThinking ? <span className="italic text-gray-400 animate-pulse">Forge is thinking...</span> : msg.text}</p>
-                                {msg.sender === 'AI' && msg.text && (
-                                    <button onClick={() => isSpeaking ? cancelSpeech() : speak(msg.text)} disabled={isAudioLoading} className={`p-2 ml-3 rounded-full flex-shrink-0 self-center transition-colors ${isSpeaking ? 'bg-red-500/50 text-white' : 'bg-gray-600 text-gray-400 hover:text-white'}`}>
-                                        {isAudioLoading ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div> : (isSpeaking ? <StopCircle size={16} /> : <Volume2 size={16} />)}
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                ))}
-            </div>
-            <div className="flex-shrink-0 border border-t-0 border-gray-700 rounded-b-lg p-4 bg-gray-800">
-                <div className="relative">
-                    <textarea value={displayedInput} onChange={(e) => setUserInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmitAnswer(); } }} placeholder={isListening ? "Listening..." : (isThinking ? "Waiting for AI's response..." : "Type or speak your answer...")} className="w-full p-4 pr-28 bg-gray-700 text-gray-200 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 resize-none transition-colors" rows={3} disabled={isThinking} />
-                    <div className="absolute right-3 bottom-3 flex gap-2">
-                        {hasRecognitionSupport && (<button onClick={isListening ? stopListening : startListening} disabled={isThinking} className={`p-3 rounded-lg transition-colors ${isListening ? 'bg-red-600 text-white animate-pulse' : 'bg-gray-600 text-gray-300 hover:bg-gray-500'}`} aria-label={isListening ? 'Stop recording' : 'Start recording'}>{isListening ? <MicOff size={20} /> : <Mic size={20} />}</button>)}
-                        <button onClick={handleSubmitAnswer} disabled={!userInput.trim() || isThinking || isListening} className="p-3 bg-yellow-400 text-gray-900 rounded-lg disabled:bg-gray-600 disabled:cursor-not-allowed hover:bg-yellow-500" aria-label="Send message"><Send size={20} /></button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
+        // Immediately cancel any currently playing audio
+        cancelSpeech();
+        
+        // Use the thinking state to show a loading indicator on the page
+        setIsThinking(true);
+        
+        try {
+            // Step 1: Call our backend to get the final analysis from the AI
+            // We show a user-friendly alert while this is happening
+            alert("Analyzing your performance... please wait a moment.");
+            
+            const analysisResponse = await fetch('/api/analyze-interview', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ transcript: messages })
+            });
+            const analysisData = await analysisResponse.json();
+            
+            if (!analysisResponse.ok) {
+                // If AI analysis fails, inform the user and stop.
+                throw new Error(analysisData.error || "Failed to generate the final analysis from the AI.");
+            }
+
+            // Step 2: Call our backend to save the transcript and the new analysis to the database
+            console.log("Saving interview results to the database...");
+            const saveResponse = await fetch('/api/save-interview', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    transcript: messages, 
+                    overall_feedback: analysisData.overall_feedback 
+                })
+            });
+            const saveData = await saveResponse.json();
+            
+            if (!saveResponse.ok) {
+                throw new Error(saveData.error || "Failed to save the interview session to your account.");
+            }
+            
+            // Step 3: On success, redirect the user to their new, unique analytics page
+            console.log(`Redirecting to analytics page for interview ID: ${saveData.interview_id}`);
+            router.push(`/interview/analytics/${saveData.interview_id}`);
+
+        } catch (error) {
+            console.error("Failed to finish interview:", error);
+            // Show a specific error message to the user
+            alert(`An error occurred while finishing the interview: ${(error as Error).message}`);
+            // IMPORTANT: Turn off the loading state if any step fails
+            setIsThinking(false);
+        }
+        // Note: We don't set isThinking to false in a `finally` block here because
+        // a successful run will navigate away from the page anyway.
+    };
 }
