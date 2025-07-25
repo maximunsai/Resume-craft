@@ -20,10 +20,18 @@ Font.register({
   ]
 });
 
+Font.register({
+  family: 'Helvetica',
+  fonts: [
+    { src: 'https://fonts.gstatic.com/s/opensans/v40/memSYaGs126MiZpBA-UvWbX2vVnXBbObj2OVZyOOSr4dVJWUgsjZ0B4taVQUwaEQbjB_mQ.ttf' },
+    { src: 'https://fonts.gstatic.com/s/opensans/v40/memSYaGs126MiZpBA-UvWbX2vVnXBbObj2OVZyOOSr4dVJWUgsg-1x4kaVQUwaEQbjB_mQ.ttf', fontWeight: 'bold' },
+  ],
+});
+
 const styles = StyleSheet.create({
   page: { 
     flexDirection: 'row', 
-    fontFamily: 'Lato', 
+    fontFamily: 'Helvetica', 
     fontSize: 10,
     margin: 0,
     padding: 0
