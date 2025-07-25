@@ -9,8 +9,16 @@ Font.register({ family: 'Inter', fonts: [
     { src: 'https://cdn.jsdelivr.net/npm/inter-font@3.19.0/Inter-Bold.woff', fontWeight: 'bold' },
 ]});
 
+Font.register({
+  family: 'Helvetica',
+  fonts: [
+    { src: 'https://fonts.gstatic.com/s/opensans/v40/memSYaGs126MiZpBA-UvWbX2vVnXBbObj2OVZyOOSr4dVJWUgsjZ0B4taVQUwaEQbjB_mQ.ttf' },
+    { src: 'https://fonts.gstatic.com/s/opensans/v40/memSYaGs126MiZpBA-UvWbX2vVnXBbObj2OVZyOOSr4dVJWUgsg-1x4kaVQUwaEQbjB_mQ.ttf', fontWeight: 'bold' },
+  ],
+});
+
 const styles = StyleSheet.create({
-    page: { flexDirection: 'row', fontFamily: 'Inter', fontSize: 10 },
+    page: { flexDirection: 'row', fontFamily: 'Helvetica', fontSize: 10 },
     leftColumn: { width: '33%', padding: 25, backgroundColor: '#f9fafb' },
     rightColumn: { width: '67%', padding: 25 },
     name: { fontSize: 24, fontWeight: 'bold', color: '#1e3a8a' },

@@ -10,8 +10,16 @@ Font.register({ family: 'Raleway', fonts: [
     { src: 'https://cdn.jsdelivr.net/npm/@fontsource/raleway@4.5.12/files/raleway-latin-900-normal.woff', fontWeight: 'heavy' },
 ]});
 
+Font.register({
+  family: 'Helvetica',
+  fonts: [
+    { src: 'https://fonts.gstatic.com/s/opensans/v40/memSYaGs126MiZpBA-UvWbX2vVnXBbObj2OVZyOOSr4dVJWUgsjZ0B4taVQUwaEQbjB_mQ.ttf' },
+    { src: 'https://fonts.gstatic.com/s/opensans/v40/memSYaGs126MiZpBA-UvWbX2vVnXBbObj2OVZyOOSr4dVJWUgsg-1x4kaVQUwaEQbjB_mQ.ttf', fontWeight: 'bold' },
+  ],
+});
+
 const styles = StyleSheet.create({
-    page: { padding: 40, fontFamily: 'Raleway', fontSize: 10 },
+    page: { padding: 40, fontFamily: 'Helvetica', fontSize: 10 },
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, borderBottomWidth: 1, borderColor: '#eee', paddingBottom: 15 },
     name: { fontSize: 34, fontWeight: 'heavy', color: '#111' },
     contact: { textAlign: 'right', fontSize: 9, color: '#444' },
