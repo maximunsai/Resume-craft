@@ -25,7 +25,7 @@ Font.register({
 const styles = StyleSheet.create({
     page: { 
         padding: 40, 
-        fontFamily: 'Times', 
+        fontFamily: 'Helvetica', 
         fontSize: 11, 
         lineHeight: 1.4,
         color: '#333'
