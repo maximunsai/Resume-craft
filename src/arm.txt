@@ -1,0 +1,56 @@
+. For AcademicPDF.tsx
+Fonts Used: CMU Serif, Helvetica
+Required Files in /public/fonts/:
+cmu-serif-roman.ttf
+cmu-serif-bold.ttf
+(Helvetica is likely already working)
+
+2. For TechnicalPDF.tsx
+Fonts Used: Roboto, Roboto Mono
+Required Files in /public/fonts/:
+roboto-regular-webfont.ttf
+roboto-bold-webfont.ttf
+robotomono-regular-webfont.ttf
+
+3. For BoldPDF.tsx
+Fonts Used: Oswald, Oswald-Bold, Lato
+Required Files in /public/fonts/:
+oswald-regular.ttf
+oswald-bold.ttf
+(Lato is likely already working)
+
+4. For MetroPDF.tsx
+Fonts Used: Inter
+Required Files in /public/fonts/:
+Inter-Regular.woff
+Inter-Bold.woff
+
+5. For OnyxPDF.tsx
+Fonts Used: Inter
+Required Files in /public/fonts/:
+(Shares the same files as MetroPDF)
+Inter-Regular.woff
+Inter-Bold.woff
+
+6. For CosmopolitanPDF.tsx
+Fonts Used: Raleway, Lato
+Required Files in /public/fonts/:
+raleway-latin-400-normal.woff
+raleway-latin-700-normal.woff
+raleway-latin-900-normal.woff
+(Lato is likely already working)
+
+7. For ElegantPDF.tsx
+Fonts Used: Playfair Display, Lato
+Required Files in /public/fonts/:
+playfair-display-latin-400-normal.woff
+playfair-display-latin-700-normal.woff
+playfair-display-latin-400-italic.woff
+(Lato is likely already working)
+
+8. For CreativePDF.tsx
+Fonts Used: Montserrat
+Required Files in /public/fonts/:
+montserrat-regular.ttf
+montserrat-bold.ttf
+montserrat-semibold.ttf
