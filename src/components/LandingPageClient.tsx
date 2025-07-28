@@ -1,16 +1,17 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Play, 
-  Star, 
-  ArrowRight, 
-  Sparkles, 
-  Zap, 
-  Brain, 
-  Target, 
-  Shield, 
-  Trophy, 
+import Link from 'next/link';
+import {
+  Play,
+  Star,
+  ArrowRight,
+  Sparkles,
+  Zap,
+  Brain,
+  Target,
+  Shield,
+  Trophy,
   Users,
   CheckCircle,
   ChevronDown,
@@ -45,10 +46,10 @@ const ResumeCraftLanding: React.FC = () => {
     const handleMouseMove = (e: MouseEvent) => {
       setMousePosition({ x: e.clientX, y: e.clientY });
     };
-    
+
     window.addEventListener('scroll', handleScroll);
     window.addEventListener('mousemove', handleMouseMove);
-    
+
     return () => {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('mousemove', handleMouseMove);
@@ -75,7 +76,7 @@ const ResumeCraftLanding: React.FC = () => {
   const AnimatedBackground: React.FC = () => (
     <div className="fixed inset-0 -z-20 overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-blue-900/30 to-cyan-900/20" />
-      <div 
+      <div
         className="absolute inset-0 opacity-20 transition-all duration-300"
         style={{
           background: `radial-gradient(circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(6, 182, 212, 0.2) 0%, transparent 50%)`
@@ -98,12 +99,12 @@ const ResumeCraftLanding: React.FC = () => {
 
     const positionClasses = {
       left: 'left-4 lg:left-10',
-      right: 'right-4 lg:right-10', 
+      right: 'right-4 lg:right-10',
       center: 'left-1/2 transform -translate-x-1/2'
     };
 
     return (
-      <div 
+      <div
         className={`absolute ${sizeClasses[size]} ${positionClasses[position]} bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl shadow-2xl border border-cyan-500/30 transition-all duration-1000 hover:scale-105 hover:border-cyan-400/60 hover:shadow-cyan-500/20 hover:shadow-2xl z-10 animate-pulse`}
         style={{
           transform: `translateY(${Math.sin((scrollY + delay * 1000) * 0.001) * 20}px) rotate(${position === 'left' ? -3 : position === 'right' ? 3 : 0}deg)`,
@@ -141,13 +142,13 @@ const ResumeCraftLanding: React.FC = () => {
           {/* Content Lines */}
           <div className="space-y-1 flex-grow">
             {[...Array(8)].map((_, i) => (
-              <div 
-                key={i} 
-                className="h-1.5 bg-slate-700/40 rounded animate-pulse" 
-                style={{ 
+              <div
+                key={i}
+                className="h-1.5 bg-slate-700/40 rounded animate-pulse"
+                style={{
                   animationDelay: `${i * 0.1}s`,
                   width: `${60 + Math.random() * 35}%`
-                }} 
+                }}
               />
             ))}
           </div>
@@ -190,13 +191,13 @@ const ResumeCraftLanding: React.FC = () => {
     <div className="min-h-screen bg-slate-900 text-white overflow-x-hidden relative">
       <AnimatedBackground />
       <FloatingParticles />
-      
+
       {/* Floating Resume Backgrounds */}
       <FloatingResume delay={0} position="left" size="medium" />
       <FloatingResume delay={2} position="right" size="large" />
       <FloatingResume delay={4} position="left" size="small" />
       <FloatingResume delay={6} position="right" size="medium" />
-      
+
       {/* Navigation */}
       <nav className="fixed top-0 w-full z-50 bg-slate-900/90 backdrop-blur-xl border-b border-cyan-500/20">
         <div className="max-w-7xl mx-auto px-6 py-4">
@@ -209,27 +210,27 @@ const ResumeCraftLanding: React.FC = () => {
                 ResumeCraft
               </span>
             </div>
-            
+
             <div className="hidden lg:flex items-center space-x-8">
               {['Features', 'Process', 'Pricing', 'Success Stories'].map((item) => (
-                <a 
-                  key={item}
-                  href={`#${item.toLowerCase().replace(' ', '-')}`}
-                  className="text-slate-300 hover:text-cyan-400 transition-all duration-300 relative group font-medium"
-                >
+                // These are internal page links, so `<a>` is correct
+                <a key={item} href={`#${item.toLowerCase().replace(' ', '-')}`} className="...">
                   {item}
-                  <div className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-cyan-400 to-blue-400 group-hover:w-full transition-all duration-300" />
                 </a>
               ))}
             </div>
 
             <div className="flex items-center space-x-4">
-              <button className="text-slate-300 hover:text-cyan-400 transition-colors hidden lg:block font-medium">
+              {/* CHANGE 3: Convert button to Link */}
+              <Link href="/login" className="text-slate-300 hover:text-cyan-400 transition-colors hidden lg:block font-medium">
                 Sign In
-              </button>
-              <PulsatingCTA className="px-6 py-2.5 rounded-lg font-bold">
-                Start Free Trial
-              </PulsatingCTA>
+              </Link>
+              {/* This is a custom component, we wrap it in a Link */}
+              <Link href="/login">
+                <PulsatingCTA className="px-6 py-2.5 rounded-lg font-bold">
+                  Start Free Trial
+                </PulsatingCTA>
+              </Link>
             </div>
           </div>
         </div>
@@ -243,7 +244,7 @@ const ResumeCraftLanding: React.FC = () => {
               🚀 AI-Powered Career Transformation Engine
             </div>
           </div>
-          
+
           <h1 className="text-6xl lg:text-8xl font-black mb-8 leading-tight">
             From
             <span className="bg-gradient-to-r from-red-400 via-orange-400 to-yellow-400 bg-clip-text text-transparent animate-pulse">
@@ -255,25 +256,27 @@ const ResumeCraftLanding: React.FC = () => {
             </span>
             in Hours
           </h1>
-          
+
           <p className="text-xl lg:text-2xl text-slate-300 mb-12 max-w-4xl mx-auto leading-relaxed font-medium">
             Stop letting AI robots reject your dreams. Our military-grade AI doesn't just write resumes—it engineers career breakthroughs that make Fortune 500 companies compete for YOU.
           </p>
-          
-          <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6 mb-12">
-            <PulsatingCTA className="px-14 py-5 rounded-xl text-xl font-black shadow-2xl shadow-cyan-500/30 hover:shadow-cyan-500/50 transition-all duration-300">
-              <Rocket className="w-6 h-6" />
-              <span>Revolutionize My Career</span>
-            </PulsatingCTA>
-            
-            <button className="flex items-center space-x-3 text-cyan-400 hover:text-cyan-300 transition-colors group">
-              <div className="w-14 h-14 border-2 border-cyan-400 rounded-full flex items-center justify-center group-hover:border-cyan-300 group-hover:bg-cyan-400/10 transition-all duration-300">
-                <Play className="w-6 h-6 ml-1" />
+          <section className="relative min-h-screen ...">
+            <div className="max-w-6xl mx-auto text-center ...">
+              {/* ... */}
+              <div className="flex flex-col sm:flex-row items-center justify-center ...">
+                {/* CHANGE 4: Convert another CTA button to a Link */}
+                <Link href="/login">
+                  <PulsatingCTA className="px-14 py-5 rounded-xl text-xl font-black ...">
+                    <Rocket className="w-6 h-6" />
+                    <span>Revolutionize My Career</span>
+                  </PulsatingCTA>
+                </Link>
+                {/* ... */}
               </div>
-              <span className="font-bold text-lg">Watch Success Stories</span>
-            </button>
-          </div>
-          
+              {/* ... */}
+            </div>
+          </section>
+
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-2xl mx-auto text-sm">
             {[
               { icon: CheckCircle, text: "No credit card required", color: "text-green-400" },
@@ -301,27 +304,27 @@ const ResumeCraftLanding: React.FC = () => {
               While you're playing fair, the game has changed. Here's why 97% of job seekers fail.
             </p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { 
-                number: "6 sec", 
-                label: "Average time HR spends per resume", 
-                icon: Eye, 
+              {
+                number: "6 sec",
+                label: "Average time HR spends per resume",
+                icon: Eye,
                 color: "from-red-500 to-pink-500",
                 subtext: "Your entire career judged in seconds"
               },
-              { 
-                number: "97%", 
-                label: "Of resumes killed by AI before human review", 
-                icon: Target, 
+              {
+                number: "97%",
+                label: "Of resumes killed by AI before human review",
+                icon: Target,
                 color: "from-orange-500 to-yellow-500",
                 subtext: "Robots deciding your future"
               },
-              { 
-                number: "400+", 
-                label: "Average applications per open position", 
-                icon: Users, 
+              {
+                number: "400+",
+                label: "Average applications per open position",
+                icon: Users,
                 color: "from-cyan-500 to-blue-500",
                 subtext: "You're invisible in the crowd"
               }
@@ -356,7 +359,7 @@ const ResumeCraftLanding: React.FC = () => {
               Weapons-grade AI technology that transforms career casualties into industry champions.
             </p>
           </div>
-          
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {[
               {
@@ -394,15 +397,15 @@ const ResumeCraftLanding: React.FC = () => {
                   <div className={`w-24 h-24 bg-gradient-to-r ${feature.gradient} rounded-3xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-300 shadow-lg shadow-cyan-500/20`}>
                     <feature.icon className="w-12 h-12 text-white" />
                   </div>
-                  
+
                   <h3 className="text-3xl font-black mb-6 text-white group-hover:text-cyan-300 transition-colors">
                     {feature.title}
                   </h3>
-                  
+
                   <p className="text-slate-400 text-lg mb-8 leading-relaxed font-medium">
                     {feature.description}
                   </p>
-                  
+
                   <div className="grid grid-cols-2 gap-3">
                     {feature.features.map((item, j) => (
                       <div key={j} className="flex items-center space-x-3 bg-slate-700/30 rounded-lg p-3 border border-slate-600/30">
@@ -428,7 +431,7 @@ const ResumeCraftLanding: React.FC = () => {
             </h2>
             <p className="text-2xl text-slate-400 font-medium">Real people. Explosive results. Undeniable proof.</p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               {
@@ -440,7 +443,7 @@ const ResumeCraftLanding: React.FC = () => {
                 metrics: { before: "0 interviews in 6 months", after: "8 job offers", timeframe: "3 weeks" }
               },
               {
-                name: "Marcus Rodriguez", 
+                name: "Marcus Rodriguez",
                 role: "Marketing Director",
                 company: "Netflix",
                 image: "👨‍💼",
@@ -449,7 +452,7 @@ const ResumeCraftLanding: React.FC = () => {
               },
               {
                 name: "Emily Foster",
-                role: "Data Scientist", 
+                role: "Data Scientist",
                 company: "Tesla",
                 image: "👩‍🔬",
                 quote: "At 47, I thought my tech career was over. ResumeCraft proved that experience + the right story = unstoppable.",
@@ -466,17 +469,17 @@ const ResumeCraftLanding: React.FC = () => {
                       <p className="text-sm text-slate-500">{testimonial.company}</p>
                     </div>
                   </div>
-                  
+
                   <div className="flex text-yellow-400 mb-4">
                     {[...Array(5)].map((_, j) => (
                       <Star key={j} className="w-5 h-5 fill-current" />
                     ))}
                   </div>
-                  
+
                   <p className="text-slate-300 text-lg mb-6 leading-relaxed italic font-medium">
                     "{testimonial.quote}"
                   </p>
-                  
+
                   <div className="grid grid-cols-1 gap-4 pt-4 border-t border-slate-700/30">
                     <div className="text-center">
                       <div className="text-red-400 font-bold text-sm">{testimonial.metrics.before}</div>
@@ -503,7 +506,7 @@ const ResumeCraftLanding: React.FC = () => {
             </h2>
             <p className="text-2xl text-slate-400 font-medium">Investment in your future starts at the price of a coffee.</p>
           </div>
-          
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {[
               {
@@ -515,17 +518,17 @@ const ResumeCraftLanding: React.FC = () => {
                 popular: false
               },
               {
-                name: "Professional", 
+                name: "Professional",
                 price: "$29",
                 period: "/month",
-                description: "For serious job seekers", 
+                description: "For serious job seekers",
                 features: ["Everything in Starter", "AI Interview Prep", "Advanced Analytics", "Cover Letters", "LinkedIn Optimization", "Priority Support"],
                 cta: "Get Hired Faster",
                 popular: true
               },
               {
                 name: "Executive",
-                price: "$99", 
+                price: "$99",
                 period: "/month",
                 description: "For C-level ambitions",
                 features: ["Everything in Professional", "Personal Brand Strategy", "Executive Coach Access", "Salary Negotiation Prep", "1-on-1 Consultations"],
@@ -539,10 +542,9 @@ const ResumeCraftLanding: React.FC = () => {
                     <span className="text-white font-bold text-sm">MOST POPULAR</span>
                   </div>
                 )}
-                
-                <div className={`bg-slate-800/50 backdrop-blur-xl border rounded-3xl p-8 transition-all duration-500 group-hover:scale-105 shadow-xl ${
-                  plan.popular ? 'border-cyan-500/50 bg-gradient-to-br from-cyan-900/20 to-blue-900/20' : 'border-slate-700/50 group-hover:border-cyan-500/30'
-                }`}>
+
+                <div className={`bg-slate-800/50 backdrop-blur-xl border rounded-3xl p-8 transition-all duration-500 group-hover:scale-105 shadow-xl ${plan.popular ? 'border-cyan-500/50 bg-gradient-to-br from-cyan-900/20 to-blue-900/20' : 'border-slate-700/50 group-hover:border-cyan-500/30'
+                  }`}>
                   <div className="text-center mb-8">
                     <h3 className="text-2xl font-black text-white mb-2">{plan.name}</h3>
                     <div className="mb-2">
@@ -551,7 +553,7 @@ const ResumeCraftLanding: React.FC = () => {
                     </div>
                     <p className="text-slate-400">{plan.description}</p>
                   </div>
-                  
+
                   <ul className="space-y-4 mb-8">
                     {plan.features.map((feature, j) => (
                       <li key={j} className="flex items-center space-x-3">
@@ -560,17 +562,16 @@ const ResumeCraftLanding: React.FC = () => {
                       </li>
                     ))}
                   </ul>
-                  
-                  <PulsatingCTA className={`w-full py-4 rounded-xl text-lg font-bold ${
-                    plan.popular ? 'bg-gradient-to-r from-cyan-500 to-blue-500' : ''
-                  }`}>
+
+                  <PulsatingCTA className={`w-full py-4 rounded-xl text-lg font-bold ${plan.popular ? 'bg-gradient-to-r from-cyan-500 to-blue-500' : ''
+                    }`}>
                     {plan.cta}
                   </PulsatingCTA>
                 </div>
               </div>
             ))}
           </div>
-          
+
           <div className="text-center mt-12">
             <p className="text-slate-400 mb-4">🔒 30-day money-back guarantee • 🚀 Instant access • 💳 No setup fees</p>
             <div className="flex items-center justify-center space-x-6 text-sm text-slate-500">
@@ -592,11 +593,11 @@ const ResumeCraftLanding: React.FC = () => {
             </h2>
             <p className="text-xl text-slate-400">We've got answers that put you to sleep (peacefully).</p>
           </div>
-          
+
           <div className="space-y-4">
             {[
               {
-                question: "How is this different from ChatGPT or other AI tools?", 
+                question: "How is this different from ChatGPT or other AI tools?",
                 answer: "While ChatGPT gives generic advice, our AI is trained specifically on millions of successful resumes and hiring patterns. It knows what actually gets people hired in your industry, not just what sounds good."
               },
               {
@@ -622,13 +623,11 @@ const ResumeCraftLanding: React.FC = () => {
                   onClick={() => setFaqOpen(faqOpen === i ? null : i)}
                 >
                   <span className="text-lg font-semibold text-white">{faq.question}</span>
-                  <ChevronDown className={`w-6 h-6 text-cyan-400 transition-transform duration-300 ${
-                    faqOpen === i ? 'rotate-180' : ''
-                  }`} />
+                  <ChevronDown className={`w-6 h-6 text-cyan-400 transition-transform duration-300 ${faqOpen === i ? 'rotate-180' : ''
+                    }`} />
                 </button>
-                <div className={`transition-all duration-500 ease-in-out overflow-hidden ${
-                  faqOpen === i ? 'max-h-96' : 'max-h-0'
-                }`}>
+                <div className={`transition-all duration-500 ease-in-out overflow-hidden ${faqOpen === i ? 'max-h-96' : 'max-h-0'
+                  }`}>
                   <div className="px-8 pb-6">
                     <p className="text-slate-400 leading-relaxed">{faq.answer}</p>
                   </div>
@@ -650,18 +649,18 @@ const ResumeCraftLanding: React.FC = () => {
               Start Dominating.
             </span>
           </h2>
-          
+
           <p className="text-2xl text-slate-300 mb-12 max-w-3xl mx-auto leading-relaxed font-medium">
-            Every day you wait is another day your dream job goes to someone else. 
+            Every day you wait is another day your dream job goes to someone else.
             Your competition is already using AI. It's time to level the playing field.
           </p>
-          
+
           <div className="flex flex-col sm:flex-row items-center justify-center space-y-6 sm:space-y-0 sm:space-x-8 mb-12">
             <PulsatingCTA className="px-16 py-6 rounded-2xl text-2xl font-black shadow-2xl shadow-cyan-500/40 hover:shadow-cyan-500/60 transition-all duration-300">
               <Rocket className="w-6 h-6" />
               <span>Transform My Career Now</span>
             </PulsatingCTA>
-            
+
             <div className="text-center">
               <div className="text-sm text-slate-500 mb-2">Join 50,000+ success stories</div>
               <div className="flex items-center justify-center space-x-1">
@@ -672,11 +671,11 @@ const ResumeCraftLanding: React.FC = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
             {[
               { icon: Clock, text: "Results in 2 weeks or money back" },
-              { icon: Shield, text: "Enterprise-grade security & privacy" }, 
+              { icon: Shield, text: "Enterprise-grade security & privacy" },
               { icon: Award, text: "Trusted by Fortune 500 employees" }
             ].map((guarantee, i) => (
               <div key={i} className="flex items-center justify-center space-x-3 text-slate-400">
@@ -705,7 +704,7 @@ const ResumeCraftLanding: React.FC = () => {
                 The AI-powered career platform that transforms job seekers into job winners.
               </p>
             </div>
-            
+
             <div>
               <h4 className="font-bold text-white mb-4">Product</h4>
               <ul className="space-y-2 text-slate-400">
@@ -715,7 +714,7 @@ const ResumeCraftLanding: React.FC = () => {
                 <li><a href="#" className="hover:text-cyan-400 transition-colors">LinkedIn Optimizer</a></li>
               </ul>
             </div>
-            
+
             <div>
               <h4 className="font-bold text-white mb-4">Company</h4>
               <ul className="space-y-2 text-slate-400">
@@ -725,7 +724,7 @@ const ResumeCraftLanding: React.FC = () => {
                 <li><a href="#" className="hover:text-cyan-400 transition-colors">Press</a></li>
               </ul>
             </div>
-            
+
             <div>
               <h4 className="font-bold text-white mb-4">Support</h4>
               <ul className="space-y-2 text-slate-400">
@@ -736,7 +735,7 @@ const ResumeCraftLanding: React.FC = () => {
               </ul>
             </div>
           </div>
-          
+
           <div className="border-t border-slate-800/50 pt-8 flex flex-col md:flex-row items-center justify-between">
             <p className="text-slate-500 text-sm">
               © 2025 ResumeCraft. All rights reserved. Built with 💙 for job seekers everywhere.
@@ -744,12 +743,12 @@ const ResumeCraftLanding: React.FC = () => {
             <div className="flex items-center space-x-6 mt-4 md:mt-0">
               <a href="#" className="text-slate-500 hover:text-cyan-400 transition-colors">
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/>
+                  <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z" />
                 </svg>
               </a>
               <a href="#" className="text-slate-500 hover:text-cyan-400 transition-colors">
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                  <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
                 </svg>
               </a>
             </div>
