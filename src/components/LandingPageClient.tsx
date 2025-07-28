@@ -271,9 +271,7 @@ const ResumeCraftLanding: React.FC = () => {
                     <span>Revolutionize My Career</span>
                   </PulsatingCTA>
                 </Link>
-                {/* ... */}
               </div>
-              {/* ... */}
             </div>
           </section>
 
