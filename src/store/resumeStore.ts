@@ -2,8 +2,8 @@
 
 import { create } from 'zustand';
 import { createClient } from '@/lib/supabase/client';
+// Assuming your types are in src/types/resume.ts
 import type { PersonalDetails, Experience, AiGeneratedContent } from '@/types/resume';
-
 
 // =======================================================
 // INTERFACE DEFINITIONS (The "Contract" for our store)
@@ -21,8 +21,6 @@ export interface ResumeStateData {
     isSaving: boolean;
 }
 
-
-
 export interface ResumeStateActions {
     initialize: () => Promise<void>;
     setPersonal: (details: Partial<PersonalDetails>) => void;
@@ -35,7 +33,7 @@ export interface ResumeStateActions {
     populateFromParsedResume: (parsedData: any) => void;
     setAiGenerated: (data: AiGeneratedContent | null) => void;
     setTemplateId: (id: string) => void;
-    reset: () => void;
+    reset: () => void; // The new reset action
 }
 
 export type ResumeState = ResumeStateData & ResumeStateActions;
@@ -99,13 +97,18 @@ export const useResumeStore = create<ResumeState>((set, get) => {
 
         initialize: async () => {
             if (get().isInitialized) return;
+
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
                 set({ isInitialized: true });
                 return;
             }
+
+            console.log("Loading user resume from database...");
             const { data, error } = await supabase.from('resumes').select('*').eq('user_id', session.user.id).single();
+
             if (data) {
+                // User has existing data, so we load it.
                 set({
                     personal: data.personal || initialState.personal,
                     experience: data.experience?.length > 0 ? data.experience : initialState.experience,
@@ -113,8 +116,18 @@ export const useResumeStore = create<ResumeState>((set, get) => {
                     finalThoughts: data.final_thoughts || initialState.finalThoughts,
                     jobDescription: data.job_description || initialState.jobDescription,
                 });
+            } else {
+                // =================================================================
+                // THE SAFETY NET FIX: If a user has no data (they are new),
+                // we explicitly reset the store to wipe any potential lingering data.
+                // =================================================================
+                set(initialState);
             }
-            if (error && error.code !== 'PGRST116') console.error("Error loading data:", error);
+
+            if (error && error.code !== 'PGRST116') { // Ignore "no rows found" error
+                 console.error("Error loading resume data:", error);
+            }
+            
             set({ isInitialized: true });
         },
 
@@ -148,42 +161,31 @@ export const useResumeStore = create<ResumeState>((set, get) => {
             set({ jobDescription: jd });
             triggerSave();
         },
-
-        // =======================================================
-        // THE DEFINITIVE FIX: Data Sanitization for AI responses
-        // =======================================================
         populateFromParsedResume: (parsedData) => {
             const newState: Partial<ResumeStateData> = {};
-
-            if (parsedData.personal && typeof parsedData.personal === 'object') {
-                newState.personal = { ...get().personal, ...parsedData.personal };
-            }
-            
-            if (parsedData.experience && Array.isArray(parsedData.experience)) {
-                // We don't trust the AI's data. We build a new array of objects
-                // that are GUARANTEED to match our `Experience` type.
-                const sanitizedExperience: Experience[] = parsedData.experience.map((exp: any, index: number) => ({
-                    id: Date.now() + index, // Always generate a new, valid number ID
-                    company: exp.company || '',      // Provide fallback for every property
-                    title: exp.title || '',
-                    startDate: exp.startDate || '',
-                    endDate: exp.endDate || '',
+            if (parsedData.personal) newState.personal = { ...get().personal, ...parsedData.personal };
+            if (parsedData.experience?.length > 0) {
+                newState.experience = parsedData.experience.map((exp: any, i: number) => ({
+                    id: Date.now() + i,
+                    company: exp.company || '', title: exp.title || '',
+                    startDate: exp.startDate || '', endDate: exp.endDate || '',
                     description: exp.description || '',
                 }));
-                newState.experience = sanitizedExperience;
             }
-
-            if (typeof parsedData.skills === 'string') {
-                newState.skills = parsedData.skills;
-            }
-            
+            if (parsedData.skills) newState.skills = parsedData.skills;
             set(newState);
-
-// <h4>This will trigger the save.</h4>
+            triggerSave();
         },
 
         setAiGenerated: (data) => set({ aiGenerated: data }),
         setTemplateId: (id) => set({ templateId: id }),
-        reset: () => set(initialState),
+        
+        // =================================================================
+        // THE TRIGGER FIX: The complete and correct reset action.
+        // =================================================================
+        reset: () => {
+            console.log("Resetting resume store to initial state.");
+            set(initialState);
+        },
     };
 });

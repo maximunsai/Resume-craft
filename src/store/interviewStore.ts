@@ -74,5 +74,5 @@ export const useInterviewStore = create<InterviewState>((set) => ({
     setSelectedPersonaId: (id) => set({ selectedPersonaId: id }),
     setSelectedVoice: (voice) => set({ selectedVoice: voice }),
     setStage: (stage) => set({ stage }),
-    clearInterview: () => set({ messages: [] }),
+    clearInterview: () => set({ messages: [], stage: 'Behavioral'}),
 }));
