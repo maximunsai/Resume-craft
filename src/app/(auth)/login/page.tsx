@@ -3,84 +3,125 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
-import { FileText, Lock, Mail, User, Star, Briefcase, Award } from 'lucide-react';
+import { FileText, Lock, Mail } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-// Type definition for a particle
-type Particle = {
-    id: number;
-    x: number;
-    y: number;
-    vx: number;
-    vy: number;
-    size: number;
-    opacity: number;
-    color: string;
+// --- Component 1: The New, High-Fidelity Animation Sequence ---
+
+const AnimationSequence = ({ onComplete }: { onComplete: () => void }) => {
+  // This state controls the entire timeline of the animation
+  const [animationStep, setAnimationStep] = useState(0);
+
+  useEffect(() => {
+    // A simple, clear timeline for our sequence
+    const sequenceTimeouts = [
+      () => setAnimationStep(1), // Step 1: Character appears
+      () => setAnimationStep(2), // Step 2: Resume slides in
+      () => setAnimationStep(3), // Step 3: Character and Resume slide off, revealing the form
+      onComplete,                // Step 4: Signal to the parent component that the animation is done
+    ];
+
+    if (animationStep < sequenceTimeouts.length) {
+      // Adjust timing here to perfect the feel
+      const duration = animationStep === 2 ? 2000 : 1500;
+      const timer = setTimeout(sequenceTimeouts[animationStep], duration);
+      return () => clearTimeout(timer);
+    }
+  }, [animationStep, onComplete]);
+
+  return (
+    <div className="absolute inset-0 overflow-hidden">
+      {/* The Forge Master Character SVG */}
+      <motion.div
+        className="absolute top-1/2 left-0"
+        initial={{ x: -200, y: '-50%' }}
+        animate={{
+          x: animationStep >= 1 ? '25vw' : -200, // Slides in from the left
+          transition: { duration: 1, ease: 'circOut' },
+        }}
+      >
+        {/* We wrap the SVG in a motion.div to control its position */}
+        <motion.svg
+          width="120"
+          height="200"
+          viewBox="0 0 120 200"
+          // Animate the character's "action" pose
+          animate={{
+            y: animationStep === 2 ? [0, -10, 0] : 0, // Subtle hover/breathing effect
+            transition: { repeat: Infinity, duration: 2, ease: 'easeInOut' },
+          }}
+        >
+          <g>
+            {/* Head */}
+            <circle cx="60" cy="30" r="20" fill="#FBBF24" />
+            {/* Body */}
+            <rect x="40" y="50" width="40" height="70" rx="20" fill="#1F2937" />
+            {/* Arm that will "drag" the resume */}
+            <motion.line
+              x1="75" y1="70" x2="110" y2="90"
+              stroke="#FBBF24" strokeWidth="8" strokeLinecap="round"
+              // The arm extends when the resume is present
+              animate={{
+                x2: animationStep === 2 ? 150 : 110,
+                transition: { duration: 0.5, ease: 'backOut' },
+              }}
+            />
+          </g>
+        </motion.svg>
+      </motion.div>
+
+      {/* The Resume SVG */}
+      <motion.div
+        className="absolute top-1/2"
+        style={{ y: '-50%' }}
+        initial={{ x: '100vw', opacity: 0 }}
+        // Animate the resume based on the current step
+        animate={{
+          x: animationStep === 2 ? 'calc(25vw + 140px)' : '100vw', // Slides in to meet the character
+          opacity: animationStep === 2 ? 1 : 0,
+          transition: { duration: 1, ease: 'circOut' },
+        }}
+      >
+        {/* This entire group will be dragged off-screen */}
+        <motion.div
+          animate={{
+            x: animationStep >= 3 ? '-150vw' : 0, // The "drag off" animation
+            transition: { duration: 1.5, ease: 'circIn' },
+          }}
+        >
+          <svg width="200" height="280" viewBox="0 0 200 280" fill="none">
+            <rect width="200" height="280" rx="12" fill="#1F2937" stroke="#4B5567" strokeWidth="2" />
+            <rect x="20" y="30" width="90" height="12" rx="4" fill="#FBBF24" />
+            <rect x="20" y="60" width="160" height="6" rx="2" fill="#4B5567" />
+            <rect x="20" y="72" width="140" height="6" rx="2" fill="#4B5567" />
+            <rect x="20" y="92" width="160" height="6" rx="2" fill="#4B5567" />
+            <rect x="20" y="104" width="160" height="6" rx="2" fill="#4B5567" />
+            <rect x="20" y="116" width="120" height="6" rx="2" fill="#4B5567" />
+          </svg>
+        </motion.div>
+      </motion.div>
+    </div>
+  );
 };
 
-export default function EnhancedAnimatedLoginPage() {
-    // State Management
+
+// --- The Main LoginPage Component ---
+// This orchestrates the animation and the form, now with the correct logic.
+
+export default function LoginPage() {
+    // State Management (unchanged)
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isRegistering, setIsRegistering] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
-    const [animationPhase, setAnimationPhase] = useState('loading');
-    const [particles, setParticles] = useState<Particle[]>([]);
+    const [showAnimation, setShowAnimation] = useState(true);
     
-    // Hooks
+    // Hooks (unchanged)
     const router = useRouter();
     const supabase = createClient();
 
-    // Animation & Particle Logic
-    useEffect(() => {
-        // THEME: Particles are now shades of yellow
-        const initialParticles: Particle[] = Array.from({ length: 50 }, (_, i) => ({
-            id: i,
-            x: Math.random() * window.innerWidth,
-            y: Math.random() * window.innerHeight,
-            vx: (Math.random() - 0.5) * 0.5,
-            vy: (Math.random() - 0.5) * 0.5,
-            size: Math.random() * 2 + 1,
-            opacity: Math.random() * 0.5 + 0.1,
-            color: '#FBBF24' // Yellow accent color
-        }));
-        setParticles(initialParticles);
-
-        // Full animation sequence timing
-        const timer1 = setTimeout(() => setAnimationPhase('intro'), 1000);
-        const timer2 = setTimeout(() => setAnimationPhase('character'), 2500);
-        const timer3 = setTimeout(() => setAnimationPhase('magic'), 4500);
-        const timer4 = setTimeout(() => setAnimationPhase('reveal'), 6500);
-        const timer5 = setTimeout(() => setAnimationPhase('complete'), 8000);
-        
-        return () => {
-            clearTimeout(timer1);
-            clearTimeout(timer2);
-            clearTimeout(timer3);
-            clearTimeout(timer4);
-            clearTimeout(timer5);
-        };
-    }, []);
-
-    useEffect(() => {
-        let animationFrameId: number;
-        const animateParticles = () => {
-            setParticles(prevParticles => prevParticles.map(p => {
-                let newX = p.x + p.vx;
-                let newY = p.y + p.vy;
-                if (newX > window.innerWidth) newX = 0;
-                if (newX < 0) newX = window.innerWidth;
-                if (newY > window.innerHeight) newY = 0;
-                if (newY < 0) newY = window.innerHeight;
-                return { ...p, x: newX, y: newY };
-            }));
-            animationFrameId = requestAnimationFrame(animateParticles);
-        };
-        animationFrameId = requestAnimationFrame(animateParticles);
-        return () => cancelAnimationFrame(animationFrameId);
-    }, []);
-
-    // Supabase Auth Function
+    // Supabase Auth Function (unchanged and correct)
     const handleAuth = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -110,190 +151,90 @@ export default function EnhancedAnimatedLoginPage() {
     const inputStyles = "w-full p-3 pl-10 border border-gray-700 bg-gray-800 text-gray-200 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors placeholder-gray-500";
 
     return (
-        // THEME: Main background is dark
-        <div className="min-h-screen bg-[#111827] overflow-hidden relative">
+        <div className="min-h-screen bg-[#111827] flex items-center justify-center p-4 overflow-hidden relative">
             
-            {/* Particle System (Themed) */}
-            <div className="absolute inset-0 pointer-events-none">
-                {particles.map(particle => (
-                    <div
-                        key={particle.id}
-                        className="absolute rounded-full transition-all duration-1000 ease-out"
-                        style={{
-                            left: `${particle.x}px`,
-                            top: `${particle.y}px`,
-                            width: `${particle.size}px`,
-                            height: `${particle.size}px`,
-                            backgroundColor: particle.color,
-                            opacity: animationPhase === 'magic' ? 1 : particle.opacity,
-                            transform: animationPhase === 'magic' ? `scale(${particle.size * 1.5})` : 'scale(1)',
-                            boxShadow: animationPhase === 'magic' ? `0 0 15px ${particle.color}` : 'none'
-                        }}
-                    />
-                ))}
-            </div>
+            {/* The Animation Layer */}
+            <AnimatePresence>
+                {showAnimation && <AnimationSequence onComplete={() => setShowAnimation(false)} />}
+            </AnimatePresence>
 
-            {/* Loading Screen (Themed) */}
-            <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-1000 ${
-                animationPhase === 'loading' ? 'opacity-100' : 'opacity-0 pointer-events-none'
-            }`}>
-                <div className="text-center">
-                    <div className="w-24 h-24 border-4 border-yellow-400/30 border-t-yellow-400 rounded-full animate-spin mb-6 mx-auto"></div>
-                    <h2 className="text-2xl font-bold text-white">Initializing Forge...</h2>
-                </div>
-            </div>
-
-            {/* Company Logo/Intro (Themed) */}
-            <div className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 transition-all duration-1500 ease-out ${
-                animationPhase === 'intro' 
-                    ? 'opacity-100 scale-100' 
-                    : animationPhase === 'character'
-                    ? 'opacity-100 scale-75 translate-y-[-250px]'
-                    : 'opacity-0 scale-50'
-            } z-30`}>
-                <div className="text-center">
-                    <div className="w-24 h-24 bg-yellow-400 rounded-full mx-auto flex items-center justify-center shadow-lg ring-4 ring-white/10 mb-4">
-                        <Briefcase className="w-12 h-12 text-gray-900" />
-                    </div>
-                    <h1 className="text-4xl font-bold text-white">Career Forge</h1>
-                    <p className="text-gray-400">Crafting Professional Excellence</p>
-                </div>
-            </div>
-
-            {/* Animated Character (Themed) */}
-            <div 
-                className={`absolute transition-all duration-2000 ease-out z-20 ${
-                    animationPhase === 'loading' || animationPhase === 'intro'
-                        ? '-left-40 top-1/2 opacity-0' 
-                        : animationPhase === 'character'
-                        ? 'left-16 top-1/2 opacity-100'
-                        : animationPhase === 'magic'
-                        ? 'left-1/3 top-1/2 opacity-100 scale-110'
-                        : 'left-8 top-1/2 opacity-30'
-                } transform -translate-y-1/2`}
-                style={{ filter: animationPhase === 'magic' ? 'drop-shadow(0 0 20px #FBBF24)' : 'none' }}
-            >
-                <div className="relative">
-                    <div className="w-20 h-28 relative">
-                        <div className="w-12 h-12 bg-yellow-400 rounded-full mx-auto mb-2 relative shadow-lg">
-                            <div className="absolute top-3 left-2 w-2 h-2 bg-gray-800 rounded-full"></div>
-                            <div className="absolute top-3 right-2 w-2 h-2 bg-gray-800 rounded-full"></div>
-                            <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 w-4 h-2 border-b-2 border-gray-800 rounded-full"></div>
-                        </div>
-                        <div className="w-10 h-12 bg-gray-700 rounded-lg mx-auto mb-2"></div>
-                        <div className={`absolute top-12 -left-3 w-8 h-3 bg-yellow-400 rounded-full transition-all duration-1000 ${
-                            animationPhase === 'magic' ? 'rotate-45' : 'rotate-12'
-                        }`}></div>
-                        <div className={`absolute top-12 -right-3 w-8 h-3 bg-yellow-400 rounded-full transition-all duration-1000 ${
-                            animationPhase === 'magic' ? '-rotate-45' : '-rotate-12'
-                        }`}></div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Animated Resume (Themed) */}
-            <div 
-                className={`absolute transition-all duration-2000 ease-out z-15 ${
-                    animationPhase === 'loading' || animationPhase === 'intro' || animationPhase === 'character'
-                        ? 'left-16 top-1/2 opacity-0 scale-50'
-                        : animationPhase === 'magic'
-                        ? 'left-1/2 top-1/2 opacity-100 scale-100'
-                        : 'left-1/2 top-1/2 opacity-0 scale-125'
-                } transform -translate-x-1/2 -translate-y-1/2`}
-                style={{ filter: animationPhase === 'magic' ? 'drop-shadow(0 0 30px rgba(251, 191, 36, 0.4))' : 'none' }}
-            >
-                <div className="w-72 h-96 bg-gray-800 rounded-2xl shadow-2xl p-6 border-2 border-gray-700">
-                    <div className="flex items-center mb-4">
-                        <div className="w-10 h-10 bg-yellow-400 rounded-full flex items-center justify-center mr-3">
-                            <User className="w-6 h-6 text-gray-900" />
-                        </div>
-                        <div className="h-4 bg-gray-600 rounded-full w-32"></div>
-                    </div>
-                    <div className="space-y-3">
-                        {[...Array(5)].map((_, i) => (
-                            <div key={i} className="space-y-1">
-                                <div className="h-2 bg-gray-600 rounded-full w-24"></div>
-                                <div className="h-2 bg-gray-700 rounded-full w-full"></div>
-                                <div className="h-2 bg-gray-700 rounded-full w-5/6"></div>
+            {/* The Login Form Layer */}
+            <AnimatePresence>
+                {!showAnimation && (
+                    <motion.div
+                        className="w-full max-w-md"
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        transition={{ duration: 0.7, ease: 'backOut' }}
+                    >
+                        <div className="p-8 space-y-8 bg-[#1F2937] rounded-2xl shadow-2xl border border-gray-700">
+                            <div className="text-center">
+                                <div className="inline-block p-3 bg-yellow-400 rounded-lg mb-4">
+                                   <FileText className="w-8 h-8 text-gray-900" />
+                                </div>
+                                <h1 className="text-3xl font-poppins font-bold text-white">
+                                    {isRegistering ? 'Create Account' : 'Welcome Back'}
+                                </h1>
+                                <p className="mt-2 text-gray-400">
+                                    {isRegistering ? 'Enter the forge to begin.' : 'Sign in to access your projects.'}
+                                </p>
                             </div>
-                        ))}
-                    </div>
-                </div>
-            </div>
 
-            {/* Login Form (Themed) */}
-            <div className={`min-h-screen flex items-center justify-center p-4 transition-opacity duration-1000 ${
-                animationPhase === 'complete' ? 'opacity-100' : 'opacity-0 pointer-events-none'
-            }`}>
-                <div className={`w-full max-w-md transform transition-all duration-1000 ${
-                    animationPhase === 'complete' ? 'scale-100 translate-y-0' : 'scale-95 translate-y-10'
-                }`}>
-                    <div className="p-8 space-y-8 bg-[#1F2937] rounded-2xl shadow-2xl border border-gray-700">
-                        <div className="text-center">
-                            <div className="inline-block p-3 bg-yellow-400 rounded-lg mb-4">
-                               <FileText className="w-8 h-8 text-gray-900" />
-                            </div>
-                            <h1 className="text-3xl font-poppins font-bold text-white">
-                                {isRegistering ? 'Create Account' : 'Welcome Back'}
-                            </h1>
-                            <p className="mt-2 text-gray-400">
-                                {isRegistering ? 'Enter the forge to begin.' : 'Sign in to access your projects.'}
+                            <form className="mt-8 space-y-6" onSubmit={handleAuth}>
+                                <div className="space-y-4">
+                                    <div className="relative">
+                                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                                        <input 
+                                            type="email" 
+                                            placeholder="Email address" 
+                                            value={email} 
+                                            onChange={(e) => setEmail(e.target.value)} 
+                                            className={inputStyles} 
+                                            required 
+                                        />
+                                    </div>
+                                    <div className="relative">
+                                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                                        <input 
+                                            type="password" 
+                                            placeholder="Password" 
+                                            value={password} 
+                                            onChange={(e) => setPassword(e.target.value)} 
+                                            className={inputStyles} 
+                                            required 
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <button 
+                                        type="submit" 
+                                        disabled={loading}
+                                        className="w-full p-3 bg-yellow-400 text-gray-900 font-bold rounded-lg hover:bg-yellow-500 transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed"
+                                    >
+                                        {loading ? 'Processing...' : (isRegistering ? 'Create Account' : 'Sign In')}
+                                    </button>
+                                </div>
+                                {error && <p className="text-center text-red-400 text-sm mt-2">{error}</p>}
+                            </form>
+
+                            <p className="mt-4 text-center text-sm text-gray-400">
+                                {isRegistering ? 'Already have an account? ' : "Don't have an account? "}
+                                <span
+                                  className="font-semibold text-yellow-400 hover:text-yellow-300 cursor-pointer"
+                                  onClick={() => {
+                                      setIsRegistering(!isRegistering);
+                                      setError(null);
+                                  }}
+                                >
+                                  {isRegistering ? 'Sign In' : 'Register'}
+                                </span>
                             </p>
                         </div>
-
-                        <form className="mt-8 space-y-6" onSubmit={handleAuth}>
-                            <div className="space-y-4">
-                                <div className="relative">
-                                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                                    <input 
-                                        type="email" 
-                                        placeholder="Email address" 
-                                        value={email} 
-                                        onChange={(e) => setEmail(e.target.value)} 
-                                        className={inputStyles} 
-                                        required 
-                                    />
-                                </div>
-                                <div className="relative">
-                                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                                    <input 
-                                        type="password" 
-                                        placeholder="Password" 
-                                        value={password} 
-                                        onChange={(e) => setPassword(e.target.value)} 
-                                        className={inputStyles} 
-                                        required 
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <button 
-                                    type="submit" 
-                                    disabled={loading}
-                                    className="w-full p-3 bg-yellow-400 text-gray-900 font-bold rounded-lg hover:bg-yellow-500 transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed"
-                                >
-                                    {loading ? 'Processing...' : (isRegistering ? 'Create Account' : 'Sign In')}
-                                </button>
-                            </div>
-                            {error && <p className="text-center text-red-400 text-sm mt-2">{error}</p>}
-                        </form>
-
-                        <p className="mt-4 text-center text-sm text-gray-400">
-                            {isRegistering ? 'Already have an account? ' : "Don't have an account? "}
-                            <span
-                              className="font-semibold text-yellow-400 hover:text-yellow-300 cursor-pointer"
-                              onClick={() => {
-                                  setIsRegistering(!isRegistering);
-                                  setError(null);
-                              }}
-                            >
-                              {isRegistering ? 'Sign In' : 'Register'}
-                            </span>
-                        </p>
-                    </div>
-                </div>
-            </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
