@@ -69,9 +69,7 @@ export const LandingPageClient = () => {
 
   return (
     <div className="font-inter bg-[#111827] text-gray-300 overflow-x-hidden">
-      {/* Sticky Header */}
-
-      <header className="absolute top-0 left-0 w-full z-50">
+      <header className="sticky top-0 z-50 bg-gray-900/95 backdrop-blur-sm border-b border-gray-700">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-lg flex items-center justify-center">
