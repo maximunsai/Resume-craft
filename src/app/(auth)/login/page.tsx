@@ -14,11 +14,11 @@ type Particle = {
     vy: number;
     size: number;
     opacity: number;
-    color: string; // Color will now be yellow
+    color: string;
 };
 
 export default function EnhancedAnimatedLoginPage() {
-    // State Management (no changes needed)
+    // State Management
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isRegistering, setIsRegistering] = useState(false);
@@ -27,26 +27,26 @@ export default function EnhancedAnimatedLoginPage() {
     const [animationPhase, setAnimationPhase] = useState('loading');
     const [particles, setParticles] = useState<Particle[]>([]);
     
-    // Hooks (no changes needed)
+    // Hooks
     const router = useRouter();
     const supabase = createClient();
 
-    // Animation useEffects
+    // Animation & Particle Logic
     useEffect(() => {
-        // THEME UPDATE: Particles are now shades of yellow
+        // THEME: Particles are now shades of yellow
         const initialParticles: Particle[] = Array.from({ length: 50 }, (_, i) => ({
             id: i,
             x: Math.random() * window.innerWidth,
             y: Math.random() * window.innerHeight,
-            vx: (Math.random() - 0.5) * 0.5, // Slower particle movement
+            vx: (Math.random() - 0.5) * 0.5,
             vy: (Math.random() - 0.5) * 0.5,
             size: Math.random() * 2 + 1,
             opacity: Math.random() * 0.5 + 0.1,
-            color: '#FBBF24' // Consistent yellow color
+            color: '#FBBF24' // Yellow accent color
         }));
         setParticles(initialParticles);
 
-        // Animation sequence timing (no changes needed)
+        // Full animation sequence timing
         const timer1 = setTimeout(() => setAnimationPhase('intro'), 1000);
         const timer2 = setTimeout(() => setAnimationPhase('character'), 2500);
         const timer3 = setTimeout(() => setAnimationPhase('magic'), 4500);
@@ -63,7 +63,6 @@ export default function EnhancedAnimatedLoginPage() {
     }, []);
 
     useEffect(() => {
-        // Particle animation loop (no changes needed)
         let animationFrameId: number;
         const animateParticles = () => {
             setParticles(prevParticles => prevParticles.map(p => {
@@ -81,7 +80,7 @@ export default function EnhancedAnimatedLoginPage() {
         return () => cancelAnimationFrame(animationFrameId);
     }, []);
 
-    // Supabase Auth Function (no changes needed)
+    // Supabase Auth Function
     const handleAuth = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -108,34 +107,34 @@ export default function EnhancedAnimatedLoginPage() {
         }
     };
 
-    // THEME UPDATE: Input styles adjusted for the new theme
     const inputStyles = "w-full p-3 pl-10 border border-gray-700 bg-gray-800 text-gray-200 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors placeholder-gray-500";
 
     return (
-        // THEME UPDATE: Main background is now dark gray/black
+        // THEME: Main background is dark
         <div className="min-h-screen bg-[#111827] overflow-hidden relative">
             
-            {/* THEME UPDATE: Particle system remains, but colors are now yellow */}
+            {/* Particle System (Themed) */}
             <div className="absolute inset-0 pointer-events-none">
                 {particles.map(particle => (
                     <div
                         key={particle.id}
-                        className="absolute rounded-full"
+                        className="absolute rounded-full transition-all duration-1000 ease-out"
                         style={{
                             left: `${particle.x}px`,
                             top: `${particle.y}px`,
                             width: `${particle.size}px`,
                             height: `${particle.size}px`,
                             backgroundColor: particle.color,
-                            opacity: particle.opacity,
-                            boxShadow: `0 0 8px ${particle.color}`
+                            opacity: animationPhase === 'magic' ? 1 : particle.opacity,
+                            transform: animationPhase === 'magic' ? `scale(${particle.size * 1.5})` : 'scale(1)',
+                            boxShadow: animationPhase === 'magic' ? `0 0 15px ${particle.color}` : 'none'
                         }}
                     />
                 ))}
             </div>
 
-            {/* Loading Screen (Unchanged, already fits theme) */}
-            <div className={`absolute inset-0 flex items-center justify-center transition-all duration-1000 ${
+            {/* Loading Screen (Themed) */}
+            <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-1000 ${
                 animationPhase === 'loading' ? 'opacity-100' : 'opacity-0 pointer-events-none'
             }`}>
                 <div className="text-center">
@@ -144,9 +143,7 @@ export default function EnhancedAnimatedLoginPage() {
                 </div>
             </div>
 
-            {/* All animation logic is preserved, only colors are changed in the JSX */}
-            
-            {/* THEME UPDATE: All animated components now use the black/yellow theme */}
+            {/* Company Logo/Intro (Themed) */}
             <div className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 transition-all duration-1500 ease-out ${
                 animationPhase === 'intro' 
                     ? 'opacity-100 scale-100' 
@@ -156,23 +153,81 @@ export default function EnhancedAnimatedLoginPage() {
             } z-30`}>
                 <div className="text-center">
                     <div className="w-24 h-24 bg-yellow-400 rounded-full mx-auto flex items-center justify-center shadow-lg ring-4 ring-white/10 mb-4">
-                        <FileText className="w-12 h-12 text-gray-900" />
+                        <Briefcase className="w-12 h-12 text-gray-900" />
                     </div>
                     <h1 className="text-4xl font-bold text-white">Career Forge</h1>
-                    <p className="text-gray-400">Your professional journey starts here.</p>
+                    <p className="text-gray-400">Crafting Professional Excellence</p>
                 </div>
             </div>
 
-            {/* ... Other animation components would be here if they existed in the previous version */}
+            {/* Animated Character (Themed) */}
+            <div 
+                className={`absolute transition-all duration-2000 ease-out z-20 ${
+                    animationPhase === 'loading' || animationPhase === 'intro'
+                        ? '-left-40 top-1/2 opacity-0' 
+                        : animationPhase === 'character'
+                        ? 'left-16 top-1/2 opacity-100'
+                        : animationPhase === 'magic'
+                        ? 'left-1/3 top-1/2 opacity-100 scale-110'
+                        : 'left-8 top-1/2 opacity-30'
+                } transform -translate-y-1/2`}
+                style={{ filter: animationPhase === 'magic' ? 'drop-shadow(0 0 20px #FBBF24)' : 'none' }}
+            >
+                <div className="relative">
+                    <div className="w-20 h-28 relative">
+                        <div className="w-12 h-12 bg-yellow-400 rounded-full mx-auto mb-2 relative shadow-lg">
+                            <div className="absolute top-3 left-2 w-2 h-2 bg-gray-800 rounded-full"></div>
+                            <div className="absolute top-3 right-2 w-2 h-2 bg-gray-800 rounded-full"></div>
+                            <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 w-4 h-2 border-b-2 border-gray-800 rounded-full"></div>
+                        </div>
+                        <div className="w-10 h-12 bg-gray-700 rounded-lg mx-auto mb-2"></div>
+                        <div className={`absolute top-12 -left-3 w-8 h-3 bg-yellow-400 rounded-full transition-all duration-1000 ${
+                            animationPhase === 'magic' ? 'rotate-45' : 'rotate-12'
+                        }`}></div>
+                        <div className={`absolute top-12 -right-3 w-8 h-3 bg-yellow-400 rounded-full transition-all duration-1000 ${
+                            animationPhase === 'magic' ? '-rotate-45' : '-rotate-12'
+                        }`}></div>
+                    </div>
+                </div>
+            </div>
 
-            {/* Login Form Container */}
+            {/* Animated Resume (Themed) */}
+            <div 
+                className={`absolute transition-all duration-2000 ease-out z-15 ${
+                    animationPhase === 'loading' || animationPhase === 'intro' || animationPhase === 'character'
+                        ? 'left-16 top-1/2 opacity-0 scale-50'
+                        : animationPhase === 'magic'
+                        ? 'left-1/2 top-1/2 opacity-100 scale-100'
+                        : 'left-1/2 top-1/2 opacity-0 scale-125'
+                } transform -translate-x-1/2 -translate-y-1/2`}
+                style={{ filter: animationPhase === 'magic' ? 'drop-shadow(0 0 30px rgba(251, 191, 36, 0.4))' : 'none' }}
+            >
+                <div className="w-72 h-96 bg-gray-800 rounded-2xl shadow-2xl p-6 border-2 border-gray-700">
+                    <div className="flex items-center mb-4">
+                        <div className="w-10 h-10 bg-yellow-400 rounded-full flex items-center justify-center mr-3">
+                            <User className="w-6 h-6 text-gray-900" />
+                        </div>
+                        <div className="h-4 bg-gray-600 rounded-full w-32"></div>
+                    </div>
+                    <div className="space-y-3">
+                        {[...Array(5)].map((_, i) => (
+                            <div key={i} className="space-y-1">
+                                <div className="h-2 bg-gray-600 rounded-full w-24"></div>
+                                <div className="h-2 bg-gray-700 rounded-full w-full"></div>
+                                <div className="h-2 bg-gray-700 rounded-full w-5/6"></div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {/* Login Form (Themed) */}
             <div className={`min-h-screen flex items-center justify-center p-4 transition-opacity duration-1000 ${
                 animationPhase === 'complete' ? 'opacity-100' : 'opacity-0 pointer-events-none'
             }`}>
                 <div className={`w-full max-w-md transform transition-all duration-1000 ${
                     animationPhase === 'complete' ? 'scale-100 translate-y-0' : 'scale-95 translate-y-10'
                 }`}>
-                    {/* THEME UPDATE: Form container matches the reference image */}
                     <div className="p-8 space-y-8 bg-[#1F2937] rounded-2xl shadow-2xl border border-gray-700">
                         <div className="text-center">
                             <div className="inline-block p-3 bg-yellow-400 rounded-lg mb-4">
@@ -213,7 +268,6 @@ export default function EnhancedAnimatedLoginPage() {
                             </div>
 
                             <div>
-                                {/* THEME UPDATE: Button style matches reference */}
                                 <button 
                                     type="submit" 
                                     disabled={loading}
