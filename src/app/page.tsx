@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import { LandingPageClient } from '@/components/LandingPageClient'; // Import our new client component
+import  {LandingPageClient}  from '@/components/LandingPageClient'; // Import our new client component
 
 // This is a Server Component. It runs on the server before anything is sent to the browser.
 export default async function Page() {
